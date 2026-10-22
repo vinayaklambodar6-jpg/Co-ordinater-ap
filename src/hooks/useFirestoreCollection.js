@@ -13,12 +13,23 @@ import {
 import { db } from '../firebase.js'
 
 // Subscribes to a Firestore collection in real time and exposes write helpers.
-export function useFirestoreCollection(name, { orderField = 'createdAt', direction = 'desc' } = {}) {
+// Set `enabled` to false to skip the subscription (for example while signed out).
+export function useFirestoreCollection(
+  name,
+  { orderField = 'createdAt', direction = 'desc', enabled = true } = {},
+) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
+    if (!enabled) {
+      setItems([])
+      setLoading(false)
+      setError('')
+      return undefined
+    }
+
     const collectionQuery = query(collection(db, name), orderBy(orderField, direction))
 
     const unsubscribe = onSnapshot(
@@ -35,7 +46,7 @@ export function useFirestoreCollection(name, { orderField = 'createdAt', directi
     )
 
     return unsubscribe
-  }, [name, orderField, direction])
+  }, [name, orderField, direction, enabled])
 
   async function addItem(data) {
     await addDoc(collection(db, name), { ...data, createdAt: serverTimestamp() })

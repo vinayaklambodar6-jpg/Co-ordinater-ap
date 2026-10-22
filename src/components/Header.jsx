@@ -1,6 +1,14 @@
-import { Moon, Sun } from 'lucide-react'
+import { LogIn, LogOut, Moon, Sun } from 'lucide-react'
 
-export default function Header({ currentTab, setCurrentTab, theme, onToggleTheme }) {
+export default function Header({
+  currentTab,
+  setCurrentTab,
+  theme,
+  onToggleTheme,
+  user,
+  onLogin,
+  onLogout,
+}) {
   const tabs = [
     { id: 'dashboard', label: '📊 Dashboard' },
     { id: 'teachers', label: '👩‍🏫 Teachers & Timetable' },
@@ -19,6 +27,9 @@ export default function Header({ currentTab, setCurrentTab, theme, onToggleTheme
     year: 'numeric',
   })
 
+  const displayName = user?.displayName || user?.email || ''
+  const initial = displayName.trim().charAt(0).toUpperCase() || 'U'
+
   return (
     <header className="main-header">
       <div className="header-top">
@@ -29,6 +40,7 @@ export default function Header({ currentTab, setCurrentTab, theme, onToggleTheme
 
         <div className="header-actions">
           <div className="badge">📅 {today}</div>
+
           <button
             type="button"
             className="theme-toggle"
@@ -40,22 +52,49 @@ export default function Header({ currentTab, setCurrentTab, theme, onToggleTheme
             {isDark ? <Sun size={16} aria-hidden="true" /> : <Moon size={16} aria-hidden="true" />}
             {isDark ? 'Light Mode' : 'Dark Mode'}
           </button>
+
+          {user ? (
+            <div className="user-chip">
+              {user.photoURL ? (
+                <img
+                  className="user-avatar"
+                  src={user.photoURL}
+                  alt=""
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <span className="user-avatar user-avatar-fallback">{initial}</span>
+              )}
+              <span className="user-name" title={user.email || ''}>{displayName}</span>
+              <button type="button" className="theme-toggle logout-btn" onClick={onLogout}>
+                <LogOut size={15} aria-hidden="true" />
+                Logout
+              </button>
+            </div>
+          ) : (
+            <button type="button" className="theme-toggle" onClick={onLogin}>
+              <LogIn size={15} aria-hidden="true" />
+              Login
+            </button>
+          )}
         </div>
       </div>
 
-      <nav className="nav-bar" aria-label="Main navigation">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            className={`nav-btn ${currentTab === tab.id ? 'active' : ''}`}
-            aria-current={currentTab === tab.id ? 'page' : undefined}
-            onClick={() => setCurrentTab(tab.id)}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </nav>
+      {user && (
+        <nav className="nav-bar" aria-label="Main navigation">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              className={`nav-btn ${currentTab === tab.id ? 'active' : ''}`}
+              aria-current={currentTab === tab.id ? 'page' : undefined}
+              onClick={() => setCurrentTab(tab.id)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+      )}
     </header>
   )
 }

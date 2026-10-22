@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react'
+import { onAuthStateChanged } from 'firebase/auth'
 import Header from './components/Header.jsx'
 import Footer from './components/Footer.jsx'
 import TeacherManager from './components/TeacherManager.jsx'
 import TestPaperGenerator from './components/TestPaperGenerator.jsx'
 import SyllabusManager from './components/SyllabusManager.jsx'
+import LoginScreen from './components/LoginScreen.jsx'
+import { auth } from './firebase.js'
+import { logout } from './auth.js'
 import { useFirestoreCollection } from './hooks/useFirestoreCollection.js'
 import { isTeacherFree } from './utils/teachers.js'
 
@@ -20,11 +24,15 @@ function getInitialTheme() {
 function App() {
   const [currentTab, setCurrentTab] = useState('dashboard')
   const [theme, setTheme] = useState(getInitialTheme)
-  const substitutions = useFirestoreCollection('substitutions')
-  const dailyLogs = useFirestoreCollection('dailyLogs')
-  const defaulters = useFirestoreCollection('defaulters')
-  const teachers = useFirestoreCollection('teachers', { orderField: 'name', direction: 'asc' })
-  const syllabus = useFirestoreCollection('syllabus')
+  const [user, setUser] = useState(null)
+  const [authReady, setAuthReady] = useState(false)
+
+  const enabled = Boolean(user)
+  const substitutions = useFirestoreCollection('substitutions', { enabled })
+  const dailyLogs = useFirestoreCollection('dailyLogs', { enabled })
+  const defaulters = useFirestoreCollection('defaulters', { enabled })
+  const teachers = useFirestoreCollection('teachers', { orderField: 'name', direction: 'asc', enabled })
+  const syllabus = useFirestoreCollection('syllabus', { enabled })
 
   const [subForm, setSubForm] = useState(emptySub)
   const [logForm, setLogForm] = useState(emptyLog)
@@ -39,6 +47,14 @@ function App() {
   const updateDefaulter = (key, value) => setDefForm((form) => ({ ...form, [key]: value }))
 
   useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (nextUser) => {
+      setUser(nextUser)
+      setAuthReady(true)
+    })
+    return unsubscribe
+  }, [])
+
+  useEffect(() => {
     document.documentElement.dataset.theme = theme
     try {
       window.localStorage.setItem('coordinator-app:theme', theme)
@@ -48,6 +64,21 @@ function App() {
   }, [theme])
 
   const toggleTheme = () => setTheme((current) => (current === 'dark' ? 'light' : 'dark'))
+
+  async function handleLogout() {
+    try {
+      await logout()
+      setCurrentTab('dashboard')
+    } catch (error) {
+      window.alert(`Logout nahi hua: ${error.message}`)
+    }
+  }
+
+  function focusLogin() {
+    const card = window.document.getElementById('login-card')
+    card?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    card?.querySelector('input')?.focus()
+  }
 
   const storageError =
     substitutions.error || dailyLogs.error || defaulters.error || teachers.error || syllabus.error
@@ -129,8 +160,16 @@ function App() {
         setCurrentTab={setCurrentTab}
         theme={theme}
         onToggleTheme={toggleTheme}
+        user={user}
+        onLogin={focusLogin}
+        onLogout={handleLogout}
       />
       <main className="container">
+        {!authReady && <p className="muted auth-loading">Checking login…</p>}
+        {authReady && !user && <LoginScreen />}
+
+        {user && (
+          <>
         {storageError && (
           <div className="card error-banner">
             <b>Firestore connection problem:</b> {storageError}
@@ -256,6 +295,8 @@ function App() {
                 </tbody>
               </table></div>
             </section>
+          </>
+        )}
           </>
         )}
       </main>
