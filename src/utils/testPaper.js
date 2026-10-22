@@ -1,25 +1,20 @@
 import { FALLBACK_TEMPLATES, MARKS, QUESTION_BANK } from '../data/questionBank.js'
 import { ANSWER_BANK } from '../data/answers.js'
 
-const OBJECTIVE_COUNT = 4
-const SHORT_COUNT = 2
-const LONG_COUNT = 2
+const MARKS_OPTIONS = [10, 20, 80, 100]
 
 export const SECTIONS = [
   {
     key: 'objective',
     title: 'Section A — Objective / Very Short Answer',
-    instruction: 'Attempt all questions. Each question carries 1 mark.',
   },
   {
     key: 'short',
     title: 'Section B — Short Answer',
-    instruction: 'Attempt all questions. Each question carries 3 marks.',
   },
   {
     key: 'long',
     title: 'Section C — Long Answer',
-    instruction: 'Attempt all questions. Each question carries 5 marks.',
   },
 ]
 
@@ -38,6 +33,10 @@ export function getChapters(className, subject) {
   return chapters ? Object.keys(chapters) : []
 }
 
+export function getMarksOptions() {
+  return MARKS_OPTIONS
+}
+
 function shuffle(items) {
   const copy = [...items]
   for (let index = copy.length - 1; index > 0; index -= 1) {
@@ -47,64 +46,149 @@ function shuffle(items) {
   return copy
 }
 
-function pickQuestions(pool, answers, count, marks) {
-  return shuffle(pool.map((text, index) => ({ text, answer: answers?.[index] ?? '' })))
-    .slice(0, count)
-    .map((question) => ({ ...question, marks }))
-}
+function chapterPool(className, subject, chapter) {
+  const bankChapter = QUESTION_BANK[className]?.[subject]?.[chapter]
+  const answers = ANSWER_BANK[className]?.[subject]?.[chapter]
 
-function fillFromTemplate(templates, count, marks, chapter) {
-  return Array.from({ length: count }, (_, index) => ({
-    text: templates[index % templates.length].replaceAll('{chapter}', chapter),
-    answer: '',
-    marks,
-  }))
-}
+  if (bankChapter) {
+    return [
+      ...bankChapter.objective.map((text, index) => ({
+        text,
+        answer: answers?.objective?.[index] ?? '',
+        marks: MARKS.objective,
+        type: 'objective',
+        chapter,
+      })),
+      ...bankChapter.short.map((text, index) => ({
+        text,
+        answer: answers?.short?.[index] ?? '',
+        marks: MARKS.short,
+        type: 'short',
+        chapter,
+      })),
+      ...bankChapter.long.map((text, index) => ({
+        text,
+        answer: answers?.long?.[index] ?? '',
+        marks: MARKS.long,
+        type: 'long',
+        chapter,
+      })),
+    ]
+  }
 
-export function generatePaper({ className, subject, chapter }) {
-  const cleanChapter = chapter.trim()
-  const bankChapter = QUESTION_BANK[className]?.[subject]?.[cleanChapter]
-  const answers = ANSWER_BANK[className]?.[subject]?.[cleanChapter]
-
-  const objectivePool = bankChapter?.objective ?? []
-  const shortPool = bankChapter?.short ?? []
-  const longPool = bankChapter?.long ?? []
-
-  const sections = [
-    {
-      ...SECTIONS[0],
-      questions: objectivePool.length
-        ? pickQuestions(objectivePool, answers?.objective, Math.min(OBJECTIVE_COUNT, objectivePool.length), MARKS.objective)
-        : fillFromTemplate(FALLBACK_TEMPLATES.objective, OBJECTIVE_COUNT, MARKS.objective, cleanChapter),
-    },
-    {
-      ...SECTIONS[1],
-      questions: shortPool.length
-        ? pickQuestions(shortPool, answers?.short, Math.min(SHORT_COUNT, shortPool.length), MARKS.short)
-        : fillFromTemplate(FALLBACK_TEMPLATES.short, SHORT_COUNT, MARKS.short, cleanChapter),
-    },
-    {
-      ...SECTIONS[2],
-      questions: longPool.length
-        ? pickQuestions(longPool, answers?.long, Math.min(LONG_COUNT, longPool.length), MARKS.long)
-        : fillFromTemplate(FALLBACK_TEMPLATES.long, LONG_COUNT, MARKS.long, cleanChapter),
-    },
+  // Chapter is not in the curated bank: build template questions so the
+  // paper can still be generated from a teacher-entered syllabus.
+  return [
+    ...FALLBACK_TEMPLATES.objective.map((template) => ({
+      text: template.replaceAll('{chapter}', chapter),
+      answer: '',
+      marks: MARKS.objective,
+      type: 'objective',
+      chapter,
+    })),
+    ...FALLBACK_TEMPLATES.short.map((template) => ({
+      text: template.replaceAll('{chapter}', chapter),
+      answer: '',
+      marks: MARKS.short,
+      type: 'short',
+      chapter,
+    })),
+    ...FALLBACK_TEMPLATES.long.map((template) => ({
+      text: template.replaceAll('{chapter}', chapter),
+      answer: '',
+      marks: MARKS.long,
+      type: 'long',
+      chapter,
+    })),
   ]
+}
 
-  const totalMarks = sections.reduce(
-    (sum, section) => sum + section.questions.reduce((sectionSum, question) => sectionSum + question.marks, 0),
-    0,
+// Exact subset-sum over the question pool. Randomised item order gives a
+// different paper each time while keeping the total marks exact.
+function selectQuestions(items, target) {
+  const reachable = new Array(target + 1).fill(null)
+  reachable[0] = { prev: -1, item: -1 }
+
+  items.forEach((question, index) => {
+    for (let sum = target; sum >= question.marks; sum -= 1) {
+      if (!reachable[sum] && reachable[sum - question.marks]) {
+        reachable[sum] = { prev: sum - question.marks, item: index }
+      }
+    }
+  })
+
+  let total = target
+  while (total > 0 && !reachable[total]) total -= 1
+
+  const selected = []
+  let cursor = total
+  while (cursor > 0 && reachable[cursor]) {
+    const step = reachable[cursor]
+    selected.push(items[step.item])
+    cursor = step.prev
+  }
+
+  return { selected, total }
+}
+
+export function generatePaper({
+  className,
+  subject,
+  chapter,
+  maxMarks = 20,
+  chapterPool: availableChapters = [],
+}) {
+  const cleanChapter = chapter.trim()
+  const target = Number(maxMarks) || 20
+
+  const selectedPool = shuffle(chapterPool(className, subject, cleanChapter))
+  const otherChapters = shuffle(
+    availableChapters.filter((item) => item && item !== cleanChapter),
   )
+
+  let pool = selectedPool
+  let chaptersUsed = 1
+  let depth = 0
+
+  function poolMarks() {
+    return pool.reduce((sum, question) => sum + question.marks, 0)
+  }
+
+  // Prefer the selected chapter alone. If it cannot supply the requested
+  // marks, mix in other chapters of the same subject/class.
+  while (depth < otherChapters.length && poolMarks() < target) {
+    pool = [...pool, ...shuffle(chapterPool(className, subject, otherChapters[depth]))]
+    depth += 1
+    chaptersUsed += 1
+  }
+
+  const selection = selectQuestions(pool, target)
+
+  const grouped = { objective: [], short: [], long: [] }
+  selection.selected.forEach((question) => {
+    grouped[question.type].push(question)
+  })
+
+  const sections = SECTIONS.map((section) => ({
+    ...section,
+    questions: shuffle(grouped[section.key]),
+  }))
+
+  const totalMarks = selection.total
+  const hasAnswers = selection.selected.some((question) => question.answer)
 
   return {
     className,
     subject,
     chapter: cleanChapter,
+    chaptersUsed,
     sections,
     totalMarks,
-    duration: 35,
-    fromBank: Boolean(bankChapter),
-    hasAnswers: sections.some((section) => section.questions.some((question) => question.answer)),
+    requestedMarks: target,
+    shortfall: totalMarks < target,
+    duration: Math.max(20, Math.round((totalMarks / 20) * 35)),
+    fromBank: Boolean(QUESTION_BANK[className]?.[subject]?.[cleanChapter]),
+    hasAnswers,
     date: new Date().toLocaleDateString('en-GB'),
   }
 }

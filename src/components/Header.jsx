@@ -4,6 +4,7 @@ export default function Header({ currentTab, setCurrentTab, theme, onToggleTheme
   const tabs = [
     { id: 'dashboard', label: '📊 Dashboard' },
     { id: 'teachers', label: '👩‍🏫 Teachers & Timetable' },
+    { id: 'syllabus', label: '📚 Subjects & Chapters' },
     { id: 'substitution', label: '🔄 Substitution Manager' },
     { id: 'testGenerator', label: '📝 Auto Test Paper' },
     { id: 'dailyLog', label: '📖 Diary & Bring Message' },

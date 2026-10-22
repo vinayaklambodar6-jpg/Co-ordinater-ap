@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { PERIODS, isTeacherFree } from '../utils/teachers.js'
+import { PERIODS, isTeacherFree, periodLabel } from '../utils/teachers.js'
 
 const SAMPLE_TEACHERS = [
   {
     name: 'Mr. Rajesh Sharma',
     subject: 'Maths',
-    freePeriods: [5, 7],
+    freePeriods: [0, 5, 7],
     timetable: { 1: '10-A', 2: '9-B', 3: '8-A', 4: '10-B', 6: '7-A', 8: '9-A' },
   },
   {
@@ -208,12 +208,12 @@ export default function TeacherManager({ teachers }) {
                       key={period}
                     >
                       <div className="slot-label">
-                        <span>Period {period}</span>
+                        <span>{periodLabel(period)}</span>
                         <span className="slot-status">{isFree ? 'Free' : 'Class'}</span>
                       </div>
                       <input
                         placeholder="e.g. 10-A"
-                        aria-label={`Class for period ${period}`}
+                        aria-label={`Class for ${periodLabel(period)}`}
                         value={form.timetable[period] ?? ''}
                         onChange={(event) => updateClass(period, event.target.value)}
                       />
@@ -236,7 +236,7 @@ export default function TeacherManager({ teachers }) {
                       checked={form.freePeriods.includes(period)}
                       onChange={() => togglePeriod(period)}
                     />
-                    Period {period}
+                    {periodLabel(period)}
                   </label>
                 ))}
               </div>
@@ -277,7 +277,7 @@ export default function TeacherManager({ teachers }) {
                   <td>
                     <div className="timetable-view">
                       {PERIODS.filter((period) => teacher.timetable?.[period]).map((period) => (
-                        <span key={period}>P{period}: {teacher.timetable[period]}</span>
+                        <span key={period}>{period === 0 ? 'P0' : `P${period}`}: {teacher.timetable[period]}</span>
                       ))}
                       {!PERIODS.some((period) => teacher.timetable?.[period]) && (
                         <span className="muted">Timetable set nahi hai</span>
@@ -287,7 +287,7 @@ export default function TeacherManager({ teachers }) {
                   <td>
                     {teacher.freePeriods?.length
                       ? teacher.freePeriods.map((period) => (
-                          <span className="period-tag" key={period}>P{period}</span>
+                          <span className="period-tag" key={period}>{period === 0 ? 'P0' : `P${period}`}</span>
                         ))
                       : <span className="muted">No free period</span>}
                   </td>
@@ -334,7 +334,7 @@ export default function TeacherManager({ teachers }) {
                 )
                 return (
                   <tr key={period}>
-                    <td><b>Period {period}</b></td>
+                    <td><b>{periodLabel(period)}</b></td>
                     <td>
                       {available.length
                         ? available.map((teacher) => (

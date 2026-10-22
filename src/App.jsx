@@ -3,6 +3,7 @@ import Header from './components/Header.jsx'
 import Footer from './components/Footer.jsx'
 import TeacherManager from './components/TeacherManager.jsx'
 import TestPaperGenerator from './components/TestPaperGenerator.jsx'
+import SyllabusManager from './components/SyllabusManager.jsx'
 import { useFirestoreCollection } from './hooks/useFirestoreCollection.js'
 import { isTeacherFree } from './utils/teachers.js'
 
@@ -23,6 +24,7 @@ function App() {
   const dailyLogs = useFirestoreCollection('dailyLogs')
   const defaulters = useFirestoreCollection('defaulters')
   const teachers = useFirestoreCollection('teachers', { orderField: 'name', direction: 'asc' })
+  const syllabus = useFirestoreCollection('syllabus')
 
   const [subForm, setSubForm] = useState(emptySub)
   const [logForm, setLogForm] = useState(emptyLog)
@@ -48,7 +50,7 @@ function App() {
   const toggleTheme = () => setTheme((current) => (current === 'dark' ? 'light' : 'dark'))
 
   const storageError =
-    substitutions.error || dailyLogs.error || defaulters.error || teachers.error
+    substitutions.error || dailyLogs.error || defaulters.error || teachers.error || syllabus.error
 
   async function saveEntry(addItem, data, resetForm, successMessage) {
     setSaving(true)
@@ -144,6 +146,7 @@ function App() {
               <Stat value={dailyLogs.items.length} label="Classes Logged Today" />
               <Stat value={defaulters.items.length} label="Defaulter Lists Marked" />
               <Stat value={teachers.items.length} label="Teachers On Record" />
+              <Stat value={syllabus.items.length} label="Chapters In Syllabus" />
             </div>
             <section className="card">
               <h2 className="card-title">📌 Today&apos;s Quick Operations Overview</h2>
@@ -165,6 +168,8 @@ function App() {
 
         {currentTab === 'teachers' && <TeacherManager teachers={teachers} />}
 
+        {currentTab === 'syllabus' && <SyllabusManager syllabus={syllabus} />}
+
         {currentTab === 'substitution' && (
           <section className="card">
             <h2 className="card-title">🔄 Assign Substitute Period</h2>
@@ -172,12 +177,14 @@ function App() {
               <div className="form-grid">
                 <FormField label="Select Period">
                   <select value={subForm.period} onChange={(e) => { updateSub('period', e.target.value); updateSub('substitute', '') }}>
-                    {[1, 2, 3, 4, 5, 6, 7, 8].map((p) => <option key={p} value={p}>Period {p}</option>)}
+                    {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((p) => (
+                      <option key={p} value={p}>{p === 0 ? 'Zero Period' : `Period ${p}`}</option>
+                    ))}
                   </select>
                 </FormField>
                 <FormField label="Class & Section"><input required placeholder="e.g. 10-A" value={subForm.classSection} onChange={(e) => updateSub('classSection', e.target.value)} /></FormField>
                 <FormField label="Absent Teacher Name"><input required placeholder="Absent Teacher Name" value={subForm.absentTeacher} onChange={(e) => updateSub('absentTeacher', e.target.value)} /></FormField>
-                <FormField label={`Free Teachers (Period ${subForm.period})`}>
+                <FormField label={`Free Teachers (${Number(subForm.period) === 0 ? 'Zero Period' : `Period ${subForm.period}`})`}>
                   <select required value={subForm.substitute} onChange={(e) => updateSub('substitute', e.target.value)}>
                     <option value="">-- Choose Free Teacher --</option>
                     {freeTeachers.map((teacher) => <option key={teacher.id} value={teacher.name}>{teacher.name} ({teacher.subject})</option>)}
@@ -190,7 +197,7 @@ function App() {
           </section>
         )}
 
-        {currentTab === 'testGenerator' && <TestPaperGenerator />}
+        {currentTab === 'testGenerator' && <TestPaperGenerator syllabus={syllabus.items} />}
 
         {currentTab === 'dailyLog' && (
           <>
