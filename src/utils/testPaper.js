@@ -1,4 +1,5 @@
 import { FALLBACK_TEMPLATES, MARKS, QUESTION_BANK } from '../data/questionBank.js'
+import { ANSWER_BANK } from '../data/answers.js'
 
 const OBJECTIVE_COUNT = 4
 const SHORT_COUNT = 2
@@ -46,15 +47,16 @@ function shuffle(items) {
   return copy
 }
 
-function pickQuestions(pool, count, marks) {
-  return shuffle(pool)
+function pickQuestions(pool, answers, count, marks) {
+  return shuffle(pool.map((text, index) => ({ text, answer: answers?.[index] ?? '' })))
     .slice(0, count)
-    .map((text) => ({ text, marks }))
+    .map((question) => ({ ...question, marks }))
 }
 
 function fillFromTemplate(templates, count, marks, chapter) {
   return Array.from({ length: count }, (_, index) => ({
     text: templates[index % templates.length].replaceAll('{chapter}', chapter),
+    answer: '',
     marks,
   }))
 }
@@ -62,6 +64,7 @@ function fillFromTemplate(templates, count, marks, chapter) {
 export function generatePaper({ className, subject, chapter }) {
   const cleanChapter = chapter.trim()
   const bankChapter = QUESTION_BANK[className]?.[subject]?.[cleanChapter]
+  const answers = ANSWER_BANK[className]?.[subject]?.[cleanChapter]
 
   const objectivePool = bankChapter?.objective ?? []
   const shortPool = bankChapter?.short ?? []
@@ -71,19 +74,19 @@ export function generatePaper({ className, subject, chapter }) {
     {
       ...SECTIONS[0],
       questions: objectivePool.length
-        ? pickQuestions(objectivePool, Math.min(OBJECTIVE_COUNT, objectivePool.length), MARKS.objective)
+        ? pickQuestions(objectivePool, answers?.objective, Math.min(OBJECTIVE_COUNT, objectivePool.length), MARKS.objective)
         : fillFromTemplate(FALLBACK_TEMPLATES.objective, OBJECTIVE_COUNT, MARKS.objective, cleanChapter),
     },
     {
       ...SECTIONS[1],
       questions: shortPool.length
-        ? pickQuestions(shortPool, Math.min(SHORT_COUNT, shortPool.length), MARKS.short)
+        ? pickQuestions(shortPool, answers?.short, Math.min(SHORT_COUNT, shortPool.length), MARKS.short)
         : fillFromTemplate(FALLBACK_TEMPLATES.short, SHORT_COUNT, MARKS.short, cleanChapter),
     },
     {
       ...SECTIONS[2],
       questions: longPool.length
-        ? pickQuestions(longPool, Math.min(LONG_COUNT, longPool.length), MARKS.long)
+        ? pickQuestions(longPool, answers?.long, Math.min(LONG_COUNT, longPool.length), MARKS.long)
         : fillFromTemplate(FALLBACK_TEMPLATES.long, LONG_COUNT, MARKS.long, cleanChapter),
     },
   ]
@@ -101,6 +104,7 @@ export function generatePaper({ className, subject, chapter }) {
     totalMarks,
     duration: 35,
     fromBank: Boolean(bankChapter),
+    hasAnswers: sections.some((section) => section.questions.some((question) => question.answer)),
     date: new Date().toLocaleDateString('en-GB'),
   }
 }

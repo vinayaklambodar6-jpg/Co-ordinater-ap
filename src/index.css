@@ -677,6 +677,79 @@ th {
   }
 }
 
+/* Answer key */
+.answer-key-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  font-size: 0.88rem;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.answer-section {
+  margin-top: 16px;
+}
+
+.answer-section h4 {
+  font-size: 0.95rem;
+  color: var(--text-strong);
+  margin-bottom: 8px;
+}
+
+.answer-list {
+  padding-left: 0;
+  list-style: none;
+}
+
+.answer-list li {
+  margin-bottom: 14px;
+}
+
+.answer-question {
+  display: flex;
+  gap: 6px;
+  font-size: 0.86rem;
+  color: var(--text-muted);
+}
+
+.answer-number {
+  font-weight: 800;
+  color: var(--text-strong);
+  white-space: nowrap;
+}
+
+.answer-question .question-marks {
+  margin-left: auto;
+}
+
+.answer-text {
+  margin-top: 4px;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  background: var(--surface-muted);
+  border-left: 3px solid var(--success);
+  border-radius: 4px;
+  padding: 8px 10px;
+}
+
+@media print {
+  body[data-print="paper"] .answer-key-card {
+    display: none !important;
+  }
+
+  body[data-print="answer"] .generator-card {
+    display: none !important;
+  }
+
+  body[data-print="answer"] .answer-text {
+    background: #ffffff;
+    border-left: 2px solid #444444;
+    color: #000000;
+  }
+}
+
 /* Footer */
 footer {
   background: var(--header-from);

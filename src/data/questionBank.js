@@ -375,7 +375,7 @@ export const QUESTION_BANK = {
           'The radius and height of a cylinder are in the ratio 2 : 3 and its volume is 1617 cm\u00b3. Find its radius.',
         ],
         long: [
-          'A solid cylinder of radius 7 cm and height 10 cm is melted and recast into cubes of side 2 cm. Find the number of cubes formed.',
+          'A solid cylinder of radius 7 cm and height 8 cm is melted and recast into cubes of side 2 cm. Find the number of cubes formed.',
           'A cone of height 24 cm and base radius 6 cm is made of clay. It is reshaped into a sphere. Find the radius of the sphere.',
         ],
       },
@@ -391,7 +391,7 @@ export const QUESTION_BANK = {
           'Draw a frequency polygon for the data: 0-10 (2), 10-20 (5), 20-30 (8), 30-40 (3).',
         ],
         long: [
-          'The marks of 30 students are given. Construct a frequency distribution table with class intervals 0-10, 10-20, ... and find the mean: 5, 8, 12, 15, 18, 22, 25, 28, 32, 35 (and similar values).',
+          'Find the mean of the following marks: 10, 20, 30, 40 and 50 with frequencies 3, 5, 8, 9 and 5 respectively.',
           'Find the median and mode of the data: 15, 18, 20, 20, 22, 25, 25, 25, 28, 30.',
         ],
       },
