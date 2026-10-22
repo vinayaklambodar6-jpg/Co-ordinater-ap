@@ -1,15 +1,17 @@
 import { useState } from 'react'
-import { authErrorMessage, signInWithEmail, signInWithGoogle, signUpWithEmail } from '../auth.js'
+import {
+  authErrorMessage,
+  sendResetEmail,
+  signInWithEmail,
+  signInWithGoogle,
+} from '../auth.js'
 
 export default function LoginScreen() {
-  const [mode, setMode] = useState('signin')
-  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-
-  const isSignUp = mode === 'signup'
+  const [notice, setNotice] = useState('')
 
   async function run(action) {
     setBusy(true)
@@ -25,16 +27,26 @@ export default function LoginScreen() {
 
   function handleSubmit(event) {
     event.preventDefault()
-    if (isSignUp) {
-      run(() => signUpWithEmail(name.trim(), email.trim(), password))
-    } else {
-      run(() => signInWithEmail(email.trim(), password))
-    }
+    run(() => signInWithEmail(email.trim(), password))
   }
 
-  function switchMode(nextMode) {
-    setMode(nextMode)
+  async function handleForgotPassword() {
     setError('')
+    setNotice('')
+    const target = email.trim()
+    if (!target) {
+      setError('Pehle apna email likhein, phir reset link bhejein.')
+      return
+    }
+    setBusy(true)
+    try {
+      await sendResetEmail(target)
+      setNotice(`Password reset link ${target} par bhej diya gaya.`)
+    } catch (authError) {
+      setError(authErrorMessage(authError))
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (
@@ -63,18 +75,6 @@ export default function LoginScreen() {
       <div className="login-divider"><span>or use email</span></div>
 
       <form onSubmit={handleSubmit}>
-        {isSignUp && (
-          <div className="form-group" style={{ marginBottom: 12 }}>
-            <label>Full Name</label>
-            <input
-              required
-              placeholder="e.g. Vinayak Lambodar"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-            />
-          </div>
-        )}
-
         <div className="form-group" style={{ marginBottom: 12 }}>
           <label>Email</label>
           <input
@@ -93,7 +93,7 @@ export default function LoginScreen() {
             required
             type="password"
             minLength={6}
-            autoComplete={isSignUp ? 'new-password' : 'current-password'}
+            autoComplete="current-password"
             placeholder="Kam se kam 6 characters"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
@@ -101,21 +101,21 @@ export default function LoginScreen() {
         </div>
 
         {error && <p className="login-error">{error}</p>}
+        {notice && <p className="login-notice">{notice}</p>}
 
-        <button type="submit" className="btn-primary" disabled={busy}>
-          {busy ? 'Please wait…' : isSignUp ? 'Create Account' : 'Sign In'}
-        </button>
+        <div className="login-submit-row">
+          <button type="submit" className="btn-primary" disabled={busy}>
+            {busy ? 'Please wait…' : 'Sign In'}
+          </button>
+          <button type="button" className="btn-link" onClick={handleForgotPassword} disabled={busy}>
+            Password bhool gaye?
+          </button>
+        </div>
       </form>
 
       <p className="login-switch">
-        {isSignUp ? 'Pehle se account hai?' : 'Naya account banana hai?'}{' '}
-        <button
-          type="button"
-          className="btn-link"
-          onClick={() => switchMode(isSignUp ? 'signin' : 'signup')}
-        >
-          {isSignUp ? 'Sign in karein' : 'Account banayein'}
-        </button>
+        Naya teacher account admin banata hai. Login credentials ke liye apne coordinator se
+        sampark karein.
       </p>
     </section>
   )

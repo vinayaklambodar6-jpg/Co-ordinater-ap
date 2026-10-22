@@ -818,6 +818,24 @@ th {
   margin-bottom: 12px;
 }
 
+.login-notice {
+  background: var(--accent-bg);
+  color: var(--accent-text);
+  border-left: 3px solid var(--secondary);
+  border-radius: 4px;
+  padding: 8px 10px;
+  font-size: 0.83rem;
+  margin-bottom: 12px;
+}
+
+.login-submit-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .login-switch {
   margin-top: 16px;
   font-size: 0.85rem;
