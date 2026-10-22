@@ -1,15 +1,21 @@
 import { useEffect, useState } from 'react'
 import { onAuthStateChanged } from 'firebase/auth'
+import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore'
 import Header from './components/Header.jsx'
 import Footer from './components/Footer.jsx'
 import TeacherManager from './components/TeacherManager.jsx'
 import TestPaperGenerator from './components/TestPaperGenerator.jsx'
 import SyllabusManager from './components/SyllabusManager.jsx'
 import LoginScreen from './components/LoginScreen.jsx'
-import { auth } from './firebase.js'
+import AdminPanel from './components/AdminPanel.jsx'
+import { MySubstitutions, MyTimetable, TeacherDiary } from './components/TeacherViews.jsx'
+import { auth, db } from './firebase.js'
 import { logout } from './auth.js'
 import { useFirestoreCollection } from './hooks/useFirestoreCollection.js'
 import { isTeacherFree } from './utils/teachers.js'
+
+// First signed-in account(s) allowed to bootstrap the admin role.
+const ADMIN_EMAILS = ['vinayaklambodar6@gmail.com']
 
 const emptyLog = { classSection: '', subject: '', cw: '', hw: '', bringMessage: '' }
 const emptySub = { period: '1', classSection: '', absentTeacher: '', substitute: '' }
@@ -25,14 +31,21 @@ function App() {
   const [currentTab, setCurrentTab] = useState('dashboard')
   const [theme, setTheme] = useState(getInitialTheme)
   const [user, setUser] = useState(null)
+  const [profile, setProfile] = useState(null)
+  const [role, setRole] = useState(null)
   const [authReady, setAuthReady] = useState(false)
+  const [accessError, setAccessError] = useState('')
 
-  const enabled = Boolean(user)
-  const substitutions = useFirestoreCollection('substitutions', { enabled })
-  const dailyLogs = useFirestoreCollection('dailyLogs', { enabled })
-  const defaulters = useFirestoreCollection('defaulters', { enabled })
-  const teachers = useFirestoreCollection('teachers', { orderField: 'name', direction: 'asc', enabled })
-  const syllabus = useFirestoreCollection('syllabus', { enabled })
+  const isAdmin = role === 'admin'
+  const isTeacher = role === 'teacher'
+  const portalAccess = isAdmin || isTeacher
+
+  const substitutions = useFirestoreCollection('substitutions', { enabled: portalAccess })
+  const dailyLogs = useFirestoreCollection('dailyLogs', { enabled: portalAccess })
+  const defaulters = useFirestoreCollection('defaulters', { enabled: isAdmin })
+  const teachers = useFirestoreCollection('teachers', { orderField: 'name', direction: 'asc', enabled: portalAccess })
+  const syllabus = useFirestoreCollection('syllabus', { enabled: isAdmin })
+  const users = useFirestoreCollection('users', { enabled: isAdmin })
 
   const [subForm, setSubForm] = useState(emptySub)
   const [logForm, setLogForm] = useState(emptyLog)
@@ -47,11 +60,58 @@ function App() {
   const updateDefaulter = (key, value) => setDefForm((form) => ({ ...form, [key]: value }))
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (nextUser) => {
+    let cancelled = false
+
+    const unsubscribe = onAuthStateChanged(auth, async (nextUser) => {
       setUser(nextUser)
-      setAuthReady(true)
+      setAccessError('')
+
+      if (!nextUser) {
+        setProfile(null)
+        setRole(null)
+        setAuthReady(true)
+        return
+      }
+
+      try {
+        const userRef = doc(db, 'users', nextUser.uid)
+        let snapshot = await getDoc(userRef)
+
+        // Bootstrap the very first admin account from the allowlist.
+        if (!snapshot.exists() && ADMIN_EMAILS.includes((nextUser.email || '').toLowerCase())) {
+          await setDoc(userRef, {
+            name: nextUser.displayName || nextUser.email,
+            email: nextUser.email,
+            role: 'admin',
+            createdAt: serverTimestamp(),
+          })
+          snapshot = await getDoc(userRef)
+        }
+
+        if (cancelled) return
+
+        if (snapshot.exists()) {
+          const data = snapshot.data()
+          setProfile({ id: snapshot.id, ...data })
+          setRole(data.role === 'admin' ? 'admin' : 'teacher')
+        } else {
+          setProfile(null)
+          setRole(null)
+        }
+      } catch (error) {
+        if (cancelled) return
+        setAccessError(error.message)
+        setProfile(null)
+        setRole(null)
+      } finally {
+        if (!cancelled) setAuthReady(true)
+      }
     })
-    return unsubscribe
+
+    return () => {
+      cancelled = true
+      unsubscribe()
+    }
   }, [])
 
   useEffect(() => {
@@ -64,6 +124,15 @@ function App() {
   }, [theme])
 
   const toggleTheme = () => setTheme((current) => (current === 'dark' ? 'light' : 'dark'))
+
+  useEffect(() => {
+    if (role === 'teacher' && !['myTimetable', 'mySubstitutions', 'teacherDiary'].includes(currentTab)) {
+      setCurrentTab('myTimetable')
+    }
+    if (role === 'admin' && ['myTimetable', 'mySubstitutions', 'teacherDiary'].includes(currentTab)) {
+      setCurrentTab('dashboard')
+    }
+  }, [role, currentTab])
 
   async function handleLogout() {
     try {
@@ -81,7 +150,8 @@ function App() {
   }
 
   const storageError =
-    substitutions.error || dailyLogs.error || defaulters.error || teachers.error || syllabus.error
+    substitutions.error || dailyLogs.error || defaulters.error || teachers.error || syllabus.error ||
+    users.error
 
   async function saveEntry(addItem, data, resetForm, successMessage) {
     setSaving(true)
@@ -161,6 +231,8 @@ function App() {
         theme={theme}
         onToggleTheme={toggleTheme}
         user={user}
+        role={role}
+        profileName={profile?.name}
         onLogin={focusLogin}
         onLogout={handleLogout}
       />
@@ -168,7 +240,21 @@ function App() {
         {!authReady && <p className="muted auth-loading">Checking login…</p>}
         {authReady && !user && <LoginScreen />}
 
-        {user && (
+        {authReady && user && !portalAccess && (
+          <section className="card login-card">
+            <h2 className="card-title">🚫 Access Not Assigned</h2>
+            <p className="muted" style={{ marginBottom: 14 }}>
+              Aapka account portal ke liye authorized nahi hai. Admin se apna login credentials
+              lein ya apne account ko portal se link karwayein.
+            </p>
+            {accessError && <p className="login-error">{accessError}</p>}
+            <button type="button" className="btn-secondary" onClick={handleLogout}>
+              Logout
+            </button>
+          </section>
+        )}
+
+        {user && portalAccess && (
           <>
         {storageError && (
           <div className="card error-banner">
@@ -178,7 +264,7 @@ function App() {
           </div>
         )}
 
-        {currentTab === 'dashboard' && (
+        {isAdmin && currentTab === 'dashboard' && (
           <>
             <div className="stats-grid">
               <Stat value={substitutions.items.length} label="Active Substitutes Today" />
@@ -205,11 +291,13 @@ function App() {
           </>
         )}
 
-        {currentTab === 'teachers' && <TeacherManager teachers={teachers} />}
+        {isAdmin && currentTab === 'admin' && <AdminPanel users={users} teachers={teachers} />}
 
-        {currentTab === 'syllabus' && <SyllabusManager syllabus={syllabus} />}
+        {isAdmin && currentTab === 'teachers' && <TeacherManager teachers={teachers} />}
 
-        {currentTab === 'substitution' && (
+        {isAdmin && currentTab === 'syllabus' && <SyllabusManager syllabus={syllabus} />}
+
+        {isAdmin && currentTab === 'substitution' && (
           <section className="card">
             <h2 className="card-title">🔄 Assign Substitute Period</h2>
             <form onSubmit={handleAssignSub}>
@@ -236,9 +324,21 @@ function App() {
           </section>
         )}
 
-        {currentTab === 'testGenerator' && <TestPaperGenerator syllabus={syllabus.items} />}
+        {isAdmin && currentTab === 'testGenerator' && <TestPaperGenerator syllabus={syllabus.items} />}
 
-        {currentTab === 'dailyLog' && (
+        {isTeacher && currentTab === 'myTimetable' && (
+          <MyTimetable teachers={teachers} profile={profile || {}} />
+        )}
+
+        {isTeacher && currentTab === 'mySubstitutions' && (
+          <MySubstitutions substitutions={substitutions} profile={profile || {}} />
+        )}
+
+        {isTeacher && currentTab === 'teacherDiary' && (
+          <TeacherDiary dailyLogs={dailyLogs} profile={profile || {}} />
+        )}
+
+        {isAdmin && currentTab === 'dailyLog' && (
           <>
             <section className="card">
               <h2 className="card-title">📖 Daily Class Diary &amp; Bring Tomorrow Alert</h2>
@@ -267,7 +367,7 @@ function App() {
           </>
         )}
 
-        {currentTab === 'defaulters' && (
+        {isAdmin && currentTab === 'defaulters' && (
           <>
             <section className="card">
               <h2 className="card-title">⚠️ Student Defaulter &amp; Absentee Register</h2>

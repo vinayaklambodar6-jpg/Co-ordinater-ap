@@ -6,18 +6,26 @@ export default function Header({
   theme,
   onToggleTheme,
   user,
+  role,
+  profileName,
   onLogin,
   onLogout,
 }) {
-  const tabs = [
-    { id: 'dashboard', label: '📊 Dashboard' },
-    { id: 'teachers', label: '👩‍🏫 Teachers & Timetable' },
-    { id: 'syllabus', label: '📚 Subjects & Chapters' },
-    { id: 'substitution', label: '🔄 Substitution Manager' },
-    { id: 'testGenerator', label: '📝 Auto Test Paper' },
-    { id: 'dailyLog', label: '📖 Diary & Bring Message' },
-    { id: 'defaulters', label: '⚠️ Defaulters Register' },
+  const allTabs = [
+    { id: 'dashboard', label: '📊 Dashboard', roles: ['admin'] },
+    { id: 'teachers', label: '👩‍🏫 Teachers & Timetable', roles: ['admin'] },
+    { id: 'syllabus', label: '📚 Subjects & Chapters', roles: ['admin'] },
+    { id: 'substitution', label: '🔄 Substitution Manager', roles: ['admin'] },
+    { id: 'testGenerator', label: '📝 Auto Test Paper', roles: ['admin'] },
+    { id: 'dailyLog', label: '📖 Diary & Bring Message', roles: ['admin'] },
+    { id: 'defaulters', label: '⚠️ Defaulters Register', roles: ['admin'] },
+    { id: 'admin', label: '🔐 Admin Panel', roles: ['admin'] },
+    { id: 'myTimetable', label: '🗓️ My Timetable', roles: ['teacher'] },
+    { id: 'mySubstitutions', label: '🔄 My Substitutions', roles: ['teacher'] },
+    { id: 'teacherDiary', label: '📖 Class Diary', roles: ['teacher'] },
   ]
+
+  const tabs = role ? allTabs.filter((tab) => tab.roles.includes(role)) : []
 
   const isDark = theme === 'dark'
   const today = new Date().toLocaleDateString('en-GB', {
@@ -27,7 +35,7 @@ export default function Header({
     year: 'numeric',
   })
 
-  const displayName = user?.displayName || user?.email || ''
+  const displayName = profileName || user?.displayName || user?.email || ''
   const initial = displayName.trim().charAt(0).toUpperCase() || 'U'
 
   return (
@@ -66,6 +74,9 @@ export default function Header({
                 <span className="user-avatar user-avatar-fallback">{initial}</span>
               )}
               <span className="user-name" title={user.email || ''}>{displayName}</span>
+              {role && (
+                <span className={`role-tag role-${role}`}>{role === 'admin' ? 'Admin' : 'Teacher'}</span>
+              )}
               <button type="button" className="theme-toggle logout-btn" onClick={onLogout}>
                 <LogOut size={15} aria-hidden="true" />
                 Logout

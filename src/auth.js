@@ -1,5 +1,6 @@
 import {
   GoogleAuthProvider,
+  sendPasswordResetEmail,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signInWithPopup,
@@ -28,6 +29,10 @@ export async function signUpWithEmail(name, email, password) {
 
 export function logout() {
   return signOut(auth)
+}
+
+export function sendResetEmail(email) {
+  return sendPasswordResetEmail(auth, email)
 }
 
 const MESSAGES = {

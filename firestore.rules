@@ -2,9 +2,80 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Only signed-in staff can read or write portal data.
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function adminEmails() {
+      return ['vinayaklambodar6@gmail.com'];
+    }
+
+    function userPath() {
+      return /databases/$(database)/documents/users/$(request.auth.uid);
+    }
+
+    function hasUserDoc() {
+      return signedIn() && exists(userPath());
+    }
+
+    function userRole() {
+      return hasUserDoc() ? get(userPath()).data.role : '';
+    }
+
+    function isAdmin() {
+      return signedIn() && (
+        request.auth.token.email in adminEmails() || userRole() == 'admin'
+      );
+    }
+
+    function isTeacher() {
+      return signedIn() && userRole() == 'teacher';
+    }
+
+    // Staff directory: everyone can read their own role, admins can manage all.
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+
+      allow create: if signedIn() && (
+        isAdmin() || (
+          request.auth.uid == uid &&
+          request.resource.data.role == 'admin' &&
+          request.auth.token.email in adminEmails()
+        )
+      );
+
+      allow update, delete: if isAdmin();
+    }
+
+    // Teachers can read portal data but only admins can change it.
+    match /teachers/{docId} {
+      allow read: if isAdmin() || isTeacher();
+      allow write: if isAdmin();
+    }
+
+    match /substitutions/{docId} {
+      allow read: if isAdmin() || isTeacher();
+      allow write: if isAdmin();
+    }
+
+    match /dailyLogs/{docId} {
+      allow read: if isAdmin() || isTeacher();
+      allow write: if isAdmin();
+    }
+
+    match /syllabus/{docId} {
+      allow read: if isAdmin() || isTeacher();
+      allow write: if isAdmin();
+    }
+
+    // Defaulter records are admin-only.
+    match /defaulters/{docId} {
+      allow read, write: if isAdmin();
+    }
+
     match /{document=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isAdmin();
     }
   }
 }
