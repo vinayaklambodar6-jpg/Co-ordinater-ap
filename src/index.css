@@ -566,6 +566,117 @@ th {
   white-space: nowrap;
 }
 
+/* Generated test paper */
+.info-banner {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: var(--warning-bg);
+  color: var(--warning);
+  font-size: 0.83rem;
+  font-weight: 600;
+  border-left: 4px solid var(--warning);
+}
+
+.paper-heading {
+  text-align: center;
+  border-bottom: 2px solid var(--text-strong);
+  padding-bottom: 8px;
+}
+
+.paper-heading h3 {
+  font-size: 1.05rem;
+  letter-spacing: 0.5px;
+  color: var(--text-strong);
+}
+
+.paper-heading p {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.paper-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin: 14px 0;
+  font-size: 0.88rem;
+}
+
+.paper-instruction {
+  font-size: 0.82rem;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  padding: 8px 10px;
+  border-radius: 6px;
+}
+
+.paper-section {
+  margin-top: 18px;
+}
+
+.paper-section h4 {
+  font-size: 0.95rem;
+  color: var(--text-strong);
+}
+
+.paper-section-note {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin: 2px 0 8px;
+}
+
+.paper-questions {
+  padding-left: 22px;
+}
+
+.paper-questions li {
+  margin-bottom: 10px;
+  font-size: 0.9rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.question-marks {
+  color: var(--text-muted);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.paper-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  flex-wrap: wrap;
+  margin-top: 22px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+@media print {
+  .paper-heading,
+  .paper-heading h3,
+  .paper-heading p,
+  .paper-meta,
+  .paper-section h4,
+  .paper-section-note,
+  .paper-questions li,
+  .question-marks,
+  .paper-footer,
+  .paper-instruction {
+    color: #000000 !important;
+  }
+
+  .paper-instruction {
+    background: #ffffff;
+    border: 1px solid #999999;
+  }
+}
+
 /* Footer */
 footer {
   background: var(--header-from);

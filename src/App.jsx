@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import Header from './components/Header.jsx'
 import Footer from './components/Footer.jsx'
 import TeacherManager from './components/TeacherManager.jsx'
+import TestPaperGenerator from './components/TestPaperGenerator.jsx'
 import { useFirestoreCollection } from './hooks/useFirestoreCollection.js'
 import { isTeacherFree } from './utils/teachers.js'
 
@@ -24,8 +25,6 @@ function App() {
   const teachers = useFirestoreCollection('teachers', { orderField: 'name', direction: 'asc' })
 
   const [subForm, setSubForm] = useState(emptySub)
-  const [testForm, setTestForm] = useState({ classLevel: 'Class 10', subject: 'Mathematics', chapter: '' })
-  const [generatedPaper, setGeneratedPaper] = useState(null)
   const [logForm, setLogForm] = useState(emptyLog)
   const [defForm, setDefForm] = useState(emptyDefaulter)
   const [saving, setSaving] = useState(false)
@@ -34,7 +33,6 @@ function App() {
     isTeacherFree(teacher, Number(subForm.period)),
   )
   const updateSub = (key, value) => setSubForm((form) => ({ ...form, [key]: value }))
-  const updateTest = (key, value) => setTestForm((form) => ({ ...form, [key]: value }))
   const updateLog = (key, value) => setLogForm((form) => ({ ...form, [key]: value }))
   const updateDefaulter = (key, value) => setDefForm((form) => ({ ...form, [key]: value }))
 
@@ -82,16 +80,6 @@ function App() {
       () => setSubForm((form) => ({ ...form, classSection: '', absentTeacher: '', substitute: '' })),
       'Substitute assign ho gaya!',
     )
-  }
-
-  function handleGenerateTest(event) {
-    event.preventDefault()
-    setGeneratedPaper({
-      ...testForm,
-      subject: testForm.subject.trim() || 'General',
-      chapter: testForm.chapter.trim() || 'General Revision Chapter',
-      date: new Date().toLocaleDateString('en-GB'),
-    })
   }
 
   function handleSaveLog(event) {
@@ -202,38 +190,7 @@ function App() {
           </section>
         )}
 
-        {currentTab === 'testGenerator' && (
-          <section className="card">
-            <h2 className="card-title">📝 Backup Test Paper Generator</h2>
-            <form onSubmit={handleGenerateTest}>
-              <div className="form-grid">
-                <FormField label="Select Class">
-                  <select value={testForm.classLevel} onChange={(e) => updateTest('classLevel', e.target.value)}>
-                    {[6, 7, 8, 9, 10].map((level) => <option key={level}>Class {level}</option>)}
-                  </select>
-                </FormField>
-                <FormField label="Subject"><input required value={testForm.subject} onChange={(e) => updateTest('subject', e.target.value)} /></FormField>
-                <FormField label="Completed Chapter Name"><input placeholder="e.g. Chapter 6 Triangles" value={testForm.chapter} onChange={(e) => updateTest('chapter', e.target.value)} /></FormField>
-              </div>
-              <button type="submit" className="btn-primary">Create Instant Paper</button>
-            </form>
-            {generatedPaper && (
-              <div className="test-paper-sheet">
-                <div style={{ textAlign: 'center', borderBottom: '2px solid #333', paddingBottom: 8 }}>
-                  <h3>CLASS ASSESSMENT / REVISION TEST</h3>
-                  <p>Time: 35 Minutes | Maximum Marks: 20</p>
-                </div>
-                <p style={{ margin: '12px 0' }}><b>Class:</b> {generatedPaper.classLevel} &nbsp; <b>Subject:</b> {generatedPaper.subject} &nbsp; <b>Chapter:</b> {generatedPaper.chapter} &nbsp; <b>Date:</b> {generatedPaper.date}</p>
-                <hr />
-                <p><b>Section A: Objective &amp; Basic Concept (2 Marks each)</b></p>
-                <ol className="paper-questions"><li>State an important definition and formula from {generatedPaper.chapter}.</li><li>Solve a problem based on {generatedPaper.chapter}.</li></ol>
-                <p><b>Section B: Descriptive / Analytical Problems (4 Marks each)</b></p>
-                <ol start="3" className="paper-questions"><li>Show the proof or steps clearly for {generatedPaper.chapter}.</li><li>Calculate the final value and verify your result.</li></ol>
-                <button type="button" onClick={() => window.print()} className="btn-secondary">🖨️ Print Test Paper</button>
-              </div>
-            )}
-          </section>
-        )}
+        {currentTab === 'testGenerator' && <TestPaperGenerator />}
 
         {currentTab === 'dailyLog' && (
           <>
