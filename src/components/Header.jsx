@@ -1,12 +1,16 @@
-export default function Header({ currentTab, setCurrentTab }) {
+import { Moon, Sun } from 'lucide-react'
+
+export default function Header({ currentTab, setCurrentTab, theme, onToggleTheme }) {
   const tabs = [
     { id: 'dashboard', label: '📊 Dashboard' },
+    { id: 'teachers', label: '👩‍🏫 Teachers & Timetable' },
     { id: 'substitution', label: '🔄 Substitution Manager' },
     { id: 'testGenerator', label: '📝 Auto Test Paper' },
     { id: 'dailyLog', label: '📖 Diary & Bring Message' },
     { id: 'defaulters', label: '⚠️ Defaulters Register' },
   ]
 
+  const isDark = theme === 'dark'
   const today = new Date().toLocaleDateString('en-GB', {
     weekday: 'short',
     day: 'numeric',
@@ -19,11 +23,23 @@ export default function Header({ currentTab, setCurrentTab }) {
       <div className="header-top">
         <div>
           <h1 className="school-title">School Coordinator Portal</h1>
-          <p style={{ fontSize: '0.82rem', opacity: 0.85 }}>
-            Operations, Timetable &amp; Daily Tracking
-          </p>
+          <p className="header-subtitle">Operations, Timetable &amp; Daily Tracking</p>
         </div>
-        <div className="badge">📅 {today}</div>
+
+        <div className="header-actions">
+          <div className="badge">📅 {today}</div>
+          <button
+            type="button"
+            className="theme-toggle"
+            onClick={onToggleTheme}
+            aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+            aria-pressed={isDark}
+            title={isDark ? 'Light mode' : 'Dark mode'}
+          >
+            {isDark ? <Sun size={16} aria-hidden="true" /> : <Moon size={16} aria-hidden="true" />}
+            {isDark ? 'Light Mode' : 'Dark Mode'}
+          </button>
+        </div>
       </div>
 
       <nav className="nav-bar" aria-label="Main navigation">

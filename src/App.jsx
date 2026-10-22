@@ -1,25 +1,27 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Header from './components/Header.jsx'
 import Footer from './components/Footer.jsx'
+import TeacherManager from './components/TeacherManager.jsx'
 import { useFirestoreCollection } from './hooks/useFirestoreCollection.js'
-
-const TEACHERS = [
-  { id: 'T1', name: 'Mr. Rajesh Sharma', subject: 'Maths', freePeriods: [2, 5, 7] },
-  { id: 'T2', name: 'Mrs. Sunita Verma', subject: 'Science', freePeriods: [1, 3, 6] },
-  { id: 'T3', name: 'Mr. Amit Kumar', subject: 'English', freePeriods: [2, 4, 8] },
-  { id: 'T4', name: 'Ms. Priya Singh', subject: 'Social Science', freePeriods: [1, 5, 6] },
-  { id: 'T5', name: 'Mr. Vikas Yadav', subject: 'Hindi', freePeriods: [3, 4, 7] },
-]
+import { isTeacherFree } from './utils/teachers.js'
 
 const emptyLog = { classSection: '', subject: '', cw: '', hw: '', bringMessage: '' }
 const emptySub = { period: '1', classSection: '', absentTeacher: '', substitute: '' }
 const emptyDefaulter = { classSection: '', type: 'HW Not Done', students: '' }
 
+function getInitialTheme() {
+  const savedTheme = window.localStorage.getItem('coordinator-app:theme')
+  if (savedTheme === 'dark' || savedTheme === 'light') return savedTheme
+  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+}
+
 function App() {
   const [currentTab, setCurrentTab] = useState('dashboard')
+  const [theme, setTheme] = useState(getInitialTheme)
   const substitutions = useFirestoreCollection('substitutions')
   const dailyLogs = useFirestoreCollection('dailyLogs')
   const defaulters = useFirestoreCollection('defaulters')
+  const teachers = useFirestoreCollection('teachers', { orderField: 'name', direction: 'asc' })
 
   const [subForm, setSubForm] = useState(emptySub)
   const [testForm, setTestForm] = useState({ classLevel: 'Class 10', subject: 'Mathematics', chapter: '' })
@@ -28,15 +30,27 @@ function App() {
   const [defForm, setDefForm] = useState(emptyDefaulter)
   const [saving, setSaving] = useState(false)
 
-  const freeTeachers = TEACHERS.filter((teacher) =>
-    teacher.freePeriods.includes(Number(subForm.period)),
+  const freeTeachers = teachers.items.filter((teacher) =>
+    isTeacherFree(teacher, Number(subForm.period)),
   )
   const updateSub = (key, value) => setSubForm((form) => ({ ...form, [key]: value }))
   const updateTest = (key, value) => setTestForm((form) => ({ ...form, [key]: value }))
   const updateLog = (key, value) => setLogForm((form) => ({ ...form, [key]: value }))
   const updateDefaulter = (key, value) => setDefForm((form) => ({ ...form, [key]: value }))
 
-  const storageError = substitutions.error || dailyLogs.error || defaulters.error
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+    try {
+      window.localStorage.setItem('coordinator-app:theme', theme)
+    } catch {
+      // Theme persistence is optional; the app still works without it.
+    }
+  }, [theme])
+
+  const toggleTheme = () => setTheme((current) => (current === 'dark' ? 'light' : 'dark'))
+
+  const storageError =
+    substitutions.error || dailyLogs.error || defaulters.error || teachers.error
 
   async function saveEntry(addItem, data, resetForm, successMessage) {
     setSaving(true)
@@ -120,7 +134,12 @@ function App() {
 
   return (
     <div className="app-wrapper">
-      <Header currentTab={currentTab} setCurrentTab={setCurrentTab} />
+      <Header
+        currentTab={currentTab}
+        setCurrentTab={setCurrentTab}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+      />
       <main className="container">
         {storageError && (
           <div className="card error-banner">
@@ -136,6 +155,7 @@ function App() {
               <Stat value={substitutions.items.length} label="Active Substitutes Today" />
               <Stat value={dailyLogs.items.length} label="Classes Logged Today" />
               <Stat value={defaulters.items.length} label="Defaulter Lists Marked" />
+              <Stat value={teachers.items.length} label="Teachers On Record" />
             </div>
             <section className="card">
               <h2 className="card-title">📌 Today&apos;s Quick Operations Overview</h2>
@@ -155,6 +175,8 @@ function App() {
           </>
         )}
 
+        {currentTab === 'teachers' && <TeacherManager teachers={teachers} />}
+
         {currentTab === 'substitution' && (
           <section className="card">
             <h2 className="card-title">🔄 Assign Substitute Period</h2>
@@ -171,6 +193,7 @@ function App() {
                   <select required value={subForm.substitute} onChange={(e) => updateSub('substitute', e.target.value)}>
                     <option value="">-- Choose Free Teacher --</option>
                     {freeTeachers.map((teacher) => <option key={teacher.id} value={teacher.name}>{teacher.name} ({teacher.subject})</option>)}
+                    {!freeTeachers.length && <option value="" disabled>Is period mein koi free teacher nahi</option>}
                   </select>
                 </FormField>
               </div>
