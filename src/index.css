@@ -252,6 +252,17 @@ th {
   border-radius: 6px;
 }
 
+.error-banner {
+  border-left: 4px solid #dc2626;
+  color: #b91c1c;
+  font-size: 0.85rem;
+}
+
+.btn-primary:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 /* Footer */
 footer {
   background: #0f172a;

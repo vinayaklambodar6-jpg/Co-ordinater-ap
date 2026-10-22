@@ -1,0 +1,39 @@
+- generic [ref=f1e3]:
+  - banner [ref=f1e4]:
+    - generic [ref=f1e5]:
+      - generic [ref=f1e6]:
+        - heading "School Coordinator Portal" [level=1] [ref=f1e7]
+        - paragraph [ref=f1e8]: Operations, Timetable & Daily Tracking
+      - generic [ref=f1e9]: 📅 Thu, 22 Oct 2026
+    - navigation "Main navigation" [ref=f1e10]:
+      - button "📊 Dashboard" [ref=f1e11] [cursor=pointer]
+      - button "🔄 Substitution Manager" [ref=f1e12] [cursor=pointer]
+      - button "📝 Auto Test Paper" [ref=f1e13] [cursor=pointer]
+      - button "📖 Diary & Bring Message" [ref=f1e14] [cursor=pointer]
+      - button "⚠️ Defaulters Register" [ref=f1e15] [cursor=pointer]
+  - main [ref=f1e16]:
+    - generic [ref=f1e17]:
+      - generic [ref=f1e18]:
+        - generic [ref=f1e19]: "0"
+        - generic [ref=f1e20]: Active Substitutes Today
+      - generic [ref=f1e21]:
+        - generic [ref=f1e22]: "0"
+        - generic [ref=f1e23]: Classes Logged Today
+      - generic [ref=f1e24]:
+        - generic [ref=f1e25]: "0"
+        - generic [ref=f1e26]: Defaulter Lists Marked
+    - generic [ref=f1e27]:
+      - heading "📌 Today's Quick Operations Overview" [level=2] [ref=f1e28]
+      - table [ref=f1e30]:
+        - rowgroup [ref=f1e31]:
+          - row [ref=f1e32]:
+            - columnheader "Period" [ref=f1e33]
+            - columnheader "Class" [ref=f1e34]
+            - columnheader "Absent Teacher" [ref=f1e35]
+            - columnheader "Substitute Teacher Assigned" [ref=f1e36]
+        - rowgroup [ref=f1e37]:
+          - row [ref=f1e38]:
+            - cell "Loading from Firebase…" [ref=f1e39]
+  - contentinfo [ref=f1e40]:
+    - paragraph [ref=f1e41]: School Coordinator Management System • Focused Operations Hub
+    - paragraph [ref=f1e42]: Real-time Substitution, Test Generation & Student Compliance Tracking

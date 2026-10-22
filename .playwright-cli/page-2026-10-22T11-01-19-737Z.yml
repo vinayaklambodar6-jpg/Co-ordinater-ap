@@ -1,0 +1,50 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - heading "School Coordinator Portal" [level=1] [ref=e7]
+        - paragraph [ref=e8]: Operations, Timetable & Daily Tracking
+      - generic [ref=e9]: 📅 Thu, 22 Oct 2026
+    - navigation "Main navigation" [ref=e10]:
+      - button "📊 Dashboard" [ref=e11] [cursor=pointer]
+      - button "🔄 Substitution Manager" [ref=e12] [cursor=pointer]
+      - button "📝 Auto Test Paper" [ref=e13] [cursor=pointer]
+      - button "📖 Diary & Bring Message" [active] [ref=e14] [cursor=pointer]
+      - button "⚠️ Defaulters Register" [ref=e15] [cursor=pointer]
+  - main [ref=e16]:
+    - generic [ref=e43]:
+      - heading "📖 Daily Class Diary & Bring Tomorrow Alert" [level=2] [ref=e44]
+      - generic [ref=e45]:
+        - generic [ref=e46]:
+          - generic [ref=e47]:
+            - generic [ref=e48]: Class & Section
+            - textbox "e.g. 10-A" [ref=e49]
+          - generic [ref=e50]:
+            - generic [ref=e51]: Subject
+            - textbox "e.g. Mathematics" [ref=e52]
+          - generic [ref=e53]:
+            - generic [ref=e54]: Classwork (CW Topic Covered Today)
+            - textbox [ref=e55]
+          - generic [ref=e56]:
+            - generic [ref=e57]: Homework (HW Given)
+            - textbox [ref=e58]
+          - generic [ref=e59]:
+            - generic [ref=e60]: 🔔 Bring Tomorrow Message
+            - textbox "e.g. Bring Geometry Box tomorrow" [ref=e61]
+        - button "Save Diary Entry" [ref=e62] [cursor=pointer]
+    - generic [ref=e63]:
+      - heading "Today's Class Diary Entries" [level=2] [ref=e64]
+      - table [ref=e66]:
+        - rowgroup [ref=e67]:
+          - row [ref=e68]:
+            - columnheader "Class" [ref=e69]
+            - columnheader "Subject" [ref=e70]
+            - columnheader "Classwork" [ref=e71]
+            - columnheader "Homework" [ref=e72]
+            - columnheader "Bring Message" [ref=e73]
+        - rowgroup [ref=e74]:
+          - row [ref=e75]:
+            - cell "Abhi koi diary entry nahi hai." [ref=e76]
+  - contentinfo [ref=e40]:
+    - paragraph [ref=e41]: School Coordinator Management System • Focused Operations Hub
+    - paragraph [ref=e42]: Real-time Substitution, Test Generation & Student Compliance Tracking
