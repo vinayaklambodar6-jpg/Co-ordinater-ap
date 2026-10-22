@@ -4,23 +4,31 @@
   --primary: #1f4e78;
   --primary-dark: #143654;
   --secondary: #0284c7;
-  --bg-color: #f1f5f9;
+  --bg-color: #eef2f7;
+  --bg-image:
+    radial-gradient(1100px 520px at 8% -12%, #dbeafe 0%, transparent 62%),
+    radial-gradient(900px 460px at 100% 0%, #e0f2fe 0%, transparent 58%);
   --card-bg: #ffffff;
+  --card-bg-alt: #f8fafc;
   --text-main: #1e293b;
-  --text-strong: #0f172a;
-  --text-muted: #475569;
-  --border: #e2e8f0;
-  --border-soft: #eef2f7;
+  --text-strong: #0b1220;
+  --text-muted: #4b5a6d;
+  --border: #d7e0ea;
+  --border-strong: #bcc8d8;
+  --border-soft: #e8eef5;
   --surface-muted: #f1f5f9;
-  --table-head-bg: #f8fafc;
+  --table-head-bg: #eff4fa;
+  --row-zebra: #fafcfe;
+  --row-hover: #eef6fd;
   --accent-bg: #e0f2fe;
-  --accent-text: #0c4a6e;
-  --warning: #b45309;
+  --accent-text: #075985;
+  --warning: #92400e;
   --warning-bg: #fef3c7;
   --success: #15803d;
+  --success-bg: #dcfce7;
   --danger: #dc2626;
   --danger-bg: #fee2e2;
-  --danger-text: #b91c1c;
+  --danger-text: #991b1b;
   --header-from: #0b2545;
   --header-to: #1f4e78;
   --header-text: #ffffff;
@@ -28,9 +36,14 @@
   --nav-text: #e8f2fb;
   --nav-active-bg: #ffffff;
   --nav-active-text: #143654;
-  --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.06);
+  --shadow-card:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 10px 24px -16px rgba(15, 23, 42, 0.32);
+  --shadow-card-hover:
+    0 2px 4px rgba(15, 23, 42, 0.06),
+    0 14px 30px -18px rgba(15, 23, 42, 0.38);
   --shadow-header: 0 4px 14px rgba(15, 23, 42, 0.18);
-  --focus-ring: rgba(2, 132, 199, 0.35);
+  --focus-ring: rgba(2, 132, 199, 0.28);
   --btn-bg: #1f4e78;
   --btn-bg-hover: #143654;
   --btn-text: #ffffff;
@@ -42,20 +55,28 @@
   --primary: #60a5fa;
   --primary-dark: #93c5fd;
   --secondary: #38bdf8;
-  --bg-color: #0b1220;
-  --card-bg: #131c2e;
-  --text-main: #e2e8f0;
+  --bg-color: #070d18;
+  --bg-image:
+    radial-gradient(1100px 540px at 8% -12%, #102a45 0%, transparent 62%),
+    radial-gradient(900px 480px at 100% 0%, #0c2036 0%, transparent 58%);
+  --card-bg: #121c2e;
+  --card-bg-alt: #16223a;
+  --text-main: #e6edf6;
   --text-strong: #f8fafc;
-  --text-muted: #a9b6c9;
-  --border: #2b3852;
-  --border-soft: #212c42;
-  --surface-muted: #1b263b;
-  --table-head-bg: #182338;
-  --accent-bg: #123a52;
+  --text-muted: #b3c1d4;
+  --border: #2d3d58;
+  --border-strong: #3e5274;
+  --border-soft: #22304a;
+  --surface-muted: #1a2740;
+  --table-head-bg: #182642;
+  --row-zebra: #142033;
+  --row-hover: #1b2b47;
+  --accent-bg: #0f3d5c;
   --accent-text: #bae6fd;
   --warning: #fbbf24;
-  --warning-bg: #422006;
+  --warning-bg: #3d2206;
   --success: #4ade80;
+  --success-bg: #0d3320;
   --danger: #f87171;
   --danger-bg: #431418;
   --danger-text: #fca5a5;
@@ -66,7 +87,12 @@
   --nav-text: #dbeafe;
   --nav-active-bg: #e2e8f0;
   --nav-active-text: #0b2545;
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.45);
+  --shadow-card:
+    0 1px 2px rgba(0, 0, 0, 0.5),
+    0 14px 32px -20px rgba(0, 0, 0, 0.95);
+  --shadow-card-hover:
+    0 2px 4px rgba(0, 0, 0, 0.55),
+    0 18px 38px -20px rgba(0, 0, 0, 1);
   --shadow-header: 0 6px 18px rgba(0, 0, 0, 0.55);
   --focus-ring: rgba(56, 189, 248, 0.45);
   --btn-bg: #2563eb;
@@ -83,6 +109,9 @@
 
 body {
   background-color: var(--bg-color);
+  background-image: var(--bg-image);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
   color: var(--text-main);
   line-height: 1.5;
   transition: background-color 0.25s ease, color 0.25s ease;
@@ -182,11 +211,10 @@ button:focus-visible {
 /* Nav Tabs */
 .nav-bar {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-top: 15px;
-  overflow-x: auto;
   padding-bottom: 5px;
-  scrollbar-width: thin;
 }
 
 .nav-btn {
@@ -216,20 +244,30 @@ button:focus-visible {
 /* Cards & Forms */
 .card {
   background: var(--card-bg);
-  border-radius: 8px;
-  padding: 22px;
-  margin-bottom: 20px;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 22px;
   border: 1px solid var(--border);
   box-shadow: var(--shadow-card);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-card-hover);
 }
 
 .card-title {
-  font-size: 1.15rem;
-  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.12rem;
+  font-weight: 800;
   color: var(--text-strong);
-  margin-bottom: 15px;
-  border-bottom: 2px solid var(--border-soft);
-  padding-bottom: 8px;
+  margin-bottom: 18px;
+  padding: 0 0 12px 12px;
+  border-left: 4px solid var(--secondary);
+  border-bottom: 1px solid var(--border);
 }
 
 .form-grid {
@@ -259,11 +297,16 @@ label {
 
 input, select, textarea {
   padding: 9px 12px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
   font-size: 0.9rem;
   color: var(--text-main);
   background: var(--card-bg);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+input:hover, select:hover, textarea:hover {
+  border-color: var(--secondary);
 }
 
 input::placeholder, textarea::placeholder {
@@ -289,8 +332,8 @@ input:focus, select:focus, textarea:focus {
   background: var(--btn-bg);
   color: var(--btn-text);
   border: none;
-  padding: 10px 18px;
-  border-radius: 6px;
+  padding: 10px 20px;
+  border-radius: 8px;
   font-weight: 700;
   cursor: pointer;
   transition: background 0.2s;
@@ -303,11 +346,12 @@ input:focus, select:focus, textarea:focus {
 .btn-secondary {
   background: var(--surface-muted);
   color: var(--text-main);
-  border: 1px solid var(--border);
-  padding: 8px 14px;
-  border-radius: 6px;
-  font-weight: 600;
+  border: 1px solid var(--border-strong);
+  padding: 9px 15px;
+  border-radius: 8px;
+  font-weight: 700;
   cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
 
 .btn-secondary:hover {
@@ -321,25 +365,42 @@ input:focus, select:focus, textarea:focus {
 
 table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   margin-top: 10px;
   font-size: 0.88rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
 }
 
 th, td {
-  padding: 10px 12px;
-  border: 1px solid var(--border);
+  padding: 11px 13px;
+  border-bottom: 1px solid var(--border);
   text-align: left;
   vertical-align: top;
 }
 
 th {
   background-color: var(--table-head-bg);
-  font-weight: 700;
+  font-weight: 800;
   color: var(--text-muted);
   text-transform: uppercase;
-  font-size: 0.75rem;
-  letter-spacing: 0.4px;
+  font-size: 0.73rem;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border-strong);
+}
+
+tbody tr:nth-child(even) td {
+  background: var(--row-zebra);
+}
+
+tbody tr:hover td {
+  background: var(--row-hover);
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
 }
 
 /* Highlight boxes */
@@ -360,32 +421,41 @@ th {
 }
 
 .stat-card {
-  background: var(--card-bg);
-  padding: 15px;
-  border-radius: 8px;
+  background: linear-gradient(160deg, var(--card-bg) 0%, var(--card-bg-alt) 100%);
+  padding: 18px;
+  border-radius: 12px;
   border: 1px solid var(--border);
   border-left: 4px solid var(--secondary);
   box-shadow: var(--shadow-card);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover);
+  border-color: var(--border-strong);
 }
 
 .stat-value {
-  font-size: 1.6rem;
+  font-size: 1.75rem;
   font-weight: 800;
   color: var(--text-strong);
-  line-height: 1.2;
+  line-height: 1.15;
+  letter-spacing: -0.4px;
 }
 
 .stat-label {
   font-size: 0.8rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-muted);
+  margin-top: 4px;
 }
 
 /* Test Paper Printable Area */
 .test-paper-sheet {
-  border: 2px dashed var(--border);
+  border: 2px dashed var(--border-strong);
   padding: 25px;
-  background: var(--card-bg);
+  background: var(--card-bg-alt);
   margin-top: 15px;
   border-radius: 6px;
 }
@@ -758,8 +828,10 @@ th {
 }
 
 .login-card {
-  max-width: 440px;
-  margin: 30px auto;
+  max-width: 460px;
+  margin: 34px auto;
+  border-top: 4px solid var(--secondary);
+  box-shadow: var(--shadow-card-hover);
 }
 
 .btn-google {
@@ -943,7 +1015,7 @@ th {
 /* Footer */
 footer {
   background: var(--header-from);
-  color: var(--text-muted);
+  color: var(--header-subtext);
   text-align: center;
   padding: 1.2rem;
   font-size: 0.82rem;
