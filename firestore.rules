@@ -79,6 +79,12 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Appreciation badges: staff can view, admins award/remove.
+    match /badges/{badgeId} {
+      allow read: if isAdmin() || isTeacher();
+      allow write: if isAdmin();
+    }
+
     // Teachers can read portal data but only admins can change it.
     match /teachers/{docId} {
       allow read: if isAdmin() || isTeacher();

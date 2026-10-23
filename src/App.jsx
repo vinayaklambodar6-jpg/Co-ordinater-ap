@@ -12,11 +12,15 @@ import NotificationPanel from './components/NotificationPanel.jsx'
 import WelcomeBanner from './components/WelcomeBanner.jsx'
 import TaskManager from './components/TaskManager.jsx'
 import TeacherTasks from './components/TeacherTasks.jsx'
+import BadgeManager from './components/BadgeManager.jsx'
+import MyBadges from './components/MyBadges.jsx'
+import VoiceTextarea from './components/VoiceTextarea.jsx'
 import { MySubstitutions, MyTimetable, TeacherDiary } from './components/TeacherViews.jsx'
 import { auth, db } from './firebase.js'
 import { logout } from './auth.js'
 import { useFirestoreCollection } from './hooks/useFirestoreCollection.js'
 import { isTeacherFree } from './utils/teachers.js'
+import { findSubstitutionConflicts } from './utils/substitutions.js'
 import { buildSubstitutionMessage, normalizePhone, smsLink, whatsappLink } from './utils/notify.js'
 
 // First signed-in account(s) allowed to bootstrap the admin role.
@@ -65,6 +69,7 @@ function App() {
     filter: { field: 'assignedToUid', value: user?.uid || '' },
     actor,
   })
+  const badges = useFirestoreCollection('badges', { enabled: portalAccess, actor })
 
   const [subForm, setSubForm] = useState(emptySub)
   const [logForm, setLogForm] = useState(emptyLog)
@@ -75,6 +80,12 @@ function App() {
   const freeTeachers = teachers.items.filter((teacher) =>
     isTeacherFree(teacher, Number(subForm.period)),
   )
+
+  const subConflicts = findSubstitutionConflicts({
+    ...subForm,
+    teachers: teachers.items,
+    substitutions: substitutions.items,
+  })
   const updateSub = (key, value) => setSubForm((form) => ({ ...form, [key]: value }))
   const updateLog = (key, value) => setLogForm((form) => ({ ...form, [key]: value }))
   const updateDefaulter = (key, value) => setDefForm((form) => ({ ...form, [key]: value }))
@@ -205,13 +216,13 @@ function App() {
   useEffect(() => {
     if (
       role === 'teacher' &&
-      !['myTimetable', 'myTasks', 'mySubstitutions', 'teacherDiary'].includes(currentTab)
+      !['myTimetable', 'myTasks', 'myBadges', 'mySubstitutions', 'teacherDiary'].includes(currentTab)
     ) {
       setCurrentTab('myTimetable')
     }
     if (
       role === 'admin' &&
-      ['myTimetable', 'myTasks', 'mySubstitutions', 'teacherDiary'].includes(currentTab)
+      ['myTimetable', 'myTasks', 'myBadges', 'mySubstitutions', 'teacherDiary'].includes(currentTab)
     ) {
       setCurrentTab('dashboard')
     }
@@ -234,7 +245,8 @@ function App() {
 
   const storageError =
     substitutions.error || dailyLogs.error || defaulters.error || teachers.error || syllabus.error ||
-    users.error || accessLogs.error || activityLogs.error || tasks.error || myTasks.error
+    users.error || accessLogs.error || activityLogs.error || tasks.error || myTasks.error ||
+    badges.error
 
   async function saveEntry(addItem, data, resetForm, successMessage) {
     setSaving(true)
@@ -253,6 +265,16 @@ function App() {
     event.preventDefault()
     if (!subForm.classSection.trim() || !subForm.absentTeacher.trim() || !subForm.substitute) {
       window.alert('Kripya sabhi details bharein!')
+      return
+    }
+
+    const conflicts = findSubstitutionConflicts({
+      ...subForm,
+      teachers: teachers.items,
+      substitutions: substitutions.items,
+    })
+    if (conflicts.length) {
+      window.alert(`⚠️ Clash detected:\n\n${conflicts.map((item) => `• ${item.message}`).join('\n')}`)
       return
     }
 
@@ -433,6 +455,14 @@ function App() {
           <TeacherTasks tasks={myTasks} profile={profile || {}} />
         )}
 
+        {isAdmin && currentTab === 'badges' && (
+          <BadgeManager badges={badges} teachers={teachers} currentUser={profile} />
+        )}
+
+        {isTeacher && currentTab === 'myBadges' && (
+          <MyBadges badges={badges} profile={profile || {}} />
+        )}
+
         {isAdmin && currentTab === 'notifications' && (
           <NotificationPanel teachers={teachers} substitutions={substitutions} />
         )}
@@ -507,7 +537,24 @@ function App() {
                   </select>
                 </FormField>
               </div>
-              <button type="submit" className="btn-primary" disabled={saving}>{saving ? 'Saving…' : 'Assign Substitute Now'}</button>
+              {!!subConflicts.length && (
+                <div className="clash-warning">
+                  <b>⚠️ Smart Clash Detector</b>
+                  <ul>
+                    {subConflicts.map((conflict) => (
+                      <li key={conflict.type}>{conflict.message}</li>
+                    ))}
+                  </ul>
+                  <p>Doosra free teacher chunein ya period badlein.</p>
+                </div>
+              )}
+              <button
+                type="submit"
+                className="btn-primary"
+                disabled={saving || subConflicts.length > 0}
+              >
+                {saving ? 'Saving…' : 'Assign Substitute Now'}
+              </button>
             </form>
           </section>
           </>
@@ -542,9 +589,31 @@ function App() {
                 <div className="form-grid">
                   <FormField label="Class & Section"><input required placeholder="e.g. 10-A" value={logForm.classSection} onChange={(e) => updateLog('classSection', e.target.value)} /></FormField>
                   <FormField label="Subject"><input required placeholder="e.g. Mathematics" value={logForm.subject} onChange={(e) => updateLog('subject', e.target.value)} /></FormField>
-                  <FormField label="Classwork (CW Topic Covered Today)" fullWidth><textarea value={logForm.cw} onChange={(e) => updateLog('cw', e.target.value)} /></FormField>
-                  <FormField label="Homework (HW Given)" fullWidth><textarea value={logForm.hw} onChange={(e) => updateLog('hw', e.target.value)} /></FormField>
-                  <FormField label="🔔 Bring Tomorrow Message" fullWidth><input className="alert-input" placeholder="e.g. Bring Geometry Box tomorrow" value={logForm.bringMessage} onChange={(e) => updateLog('bringMessage', e.target.value)} /></FormField>
+                  <FormField label="Classwork (CW Topic Covered Today)" fullWidth>
+                    <VoiceTextarea
+                      rows={3}
+                      hint="Mic se bolkar likhein"
+                      value={logForm.cw}
+                      onChange={(value) => updateLog('cw', value)}
+                    />
+                  </FormField>
+                  <FormField label="Homework (HW Given)" fullWidth>
+                    <VoiceTextarea
+                      rows={3}
+                      hint="Mic se bolkar likhein"
+                      value={logForm.hw}
+                      onChange={(value) => updateLog('hw', value)}
+                    />
+                  </FormField>
+                  <FormField label="🔔 Bring Tomorrow Message" fullWidth>
+                    <VoiceTextarea
+                      rows={2}
+                      className="alert-input"
+                      placeholder="e.g. Bring Geometry Box tomorrow"
+                      value={logForm.bringMessage}
+                      onChange={(value) => updateLog('bringMessage', value)}
+                    />
+                  </FormField>
                 </div>
                 <button type="submit" className="btn-primary" disabled={saving}>{saving ? 'Saving…' : 'Save Diary Entry'}</button>
               </form>

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { TASK_STATUS, taskStatusLabel, taskTypeLabel } from '../utils/tasks.js'
+import VoiceTextarea from './VoiceTextarea.jsx'
 
 function TaskCard({ task, onSave }) {
   const [status, setStatus] = useState(task.status || 'pending')
@@ -49,11 +50,12 @@ function TaskCard({ task, onSave }) {
 
         <div className="form-group">
           <label>Work Note / Update</label>
-          <textarea
+          <VoiceTextarea
             rows={2}
+            hint="Bolkar note likhein"
             placeholder="Kya kaam kiya, likh kar save karein…"
             value={note}
-            onChange={(event) => setNote(event.target.value)}
+            onChange={setNote}
           />
         </div>
       </div>
