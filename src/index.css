@@ -31,7 +31,13 @@
   --danger-text: #8f1414;
   --header-from: #0b4d22;
   --header-to: #15803d;
+  --header-solid: #15803d;
   --header-accent: #4ade80;
+  --header-chip-bg: #ffffff;
+  --header-chip-text: #0b4d22;
+  --header-chip-hover: #dcfce7;
+  --header-chip-active-bg: #052e16;
+  --header-chip-active-text: #ffffff;
   --header-text: #ffffff;
   --header-subtext: #c8e8d8;
   --nav-text: #eaf7f0;
@@ -83,7 +89,13 @@
   --danger-text: #7f1212;
   --header-from: #073d1a;
   --header-to: #146c33;
+  --header-solid: #146c33;
   --header-accent: #4ade80;
+  --header-chip-bg: #ffffff;
+  --header-chip-text: #0b4d22;
+  --header-chip-hover: #dcfce7;
+  --header-chip-active-bg: #052e16;
+  --header-chip-active-text: #ffffff;
   --header-text: #ffffff;
   --header-subtext: #bfe3d0;
   --nav-text: #e6f6ee;
@@ -135,7 +147,7 @@ body {
 
 /* Header */
 .main-header {
-  background: linear-gradient(135deg, var(--header-from) 0%, var(--header-to) 100%);
+  background: var(--header-solid);
   color: var(--header-text);
   padding: 1rem 1.5rem;
   box-shadow: var(--shadow-header);
@@ -166,13 +178,13 @@ body {
 
 .header-subtitle {
   font-size: 0.82rem;
-  color: var(--header-subtext);
+  color: #d7f3e2;
 }
 
 .badge {
-  background: rgba(255, 255, 255, 0.14);
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  color: var(--header-text);
+  background: var(--header-chip-bg);
+  border: 1px solid var(--header-chip-bg);
+  color: var(--header-chip-text);
   padding: 5px 12px;
   border-radius: 20px;
   font-size: 0.8rem;
@@ -184,9 +196,9 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  background: rgba(255, 255, 255, 0.12);
-  color: var(--header-text);
-  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: var(--header-chip-bg);
+  color: var(--header-chip-text);
+  border: 1px solid var(--header-chip-bg);
   padding: 7px 13px;
   border-radius: 20px;
   font-size: 0.8rem;
@@ -196,7 +208,8 @@ body {
 }
 
 .theme-toggle:hover {
-  background: rgba(255, 255, 255, 0.24);
+  background: var(--header-chip-hover);
+  color: var(--header-chip-active-bg);
 }
 
 .theme-toggle:active {
@@ -220,9 +233,9 @@ button:focus-visible {
 }
 
 .nav-btn {
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--nav-text);
-  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: var(--header-chip-bg);
+  color: var(--header-chip-text);
+  border: 1px solid var(--header-chip-bg);
   padding: 8px 14px;
   border-radius: 6px;
   cursor: pointer;
@@ -233,14 +246,16 @@ button:focus-visible {
 }
 
 .nav-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.55);
+  background: var(--header-chip-hover);
+  color: var(--header-chip-active-bg);
+  border-color: var(--header-chip-hover);
 }
 
 .nav-btn.active {
-  background: var(--nav-active-bg);
-  color: var(--nav-active-text);
-  border-color: var(--nav-active-bg);
+  background: var(--header-chip-active-bg);
+  color: var(--header-chip-active-text);
+  border-color: var(--header-chip-active-text);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
 }
 
 /* Cards & Forms */
@@ -932,8 +947,8 @@ tbody tr:last-child td {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: var(--header-chip-bg);
+  border: 1px solid var(--header-chip-bg);
   border-radius: 22px;
   padding: 4px 6px 4px 4px;
   max-width: 260px;
@@ -958,7 +973,7 @@ tbody tr:last-child td {
 }
 
 .user-name {
-  color: var(--header-text);
+  color: var(--header-chip-text);
   font-size: 0.8rem;
   font-weight: 600;
   overflow: hidden;
@@ -970,6 +985,8 @@ tbody tr:last-child td {
   border-radius: 18px;
   padding: 5px 10px;
   font-size: 0.75rem;
+  background: var(--header-chip-hover);
+  border-color: #bbf7d0;
 }
 
 @media (max-width: 640px) {
@@ -1267,6 +1284,19 @@ footer p:first-child {
   a {
     color: #000000 !important;
     text-decoration: none !important;
+  }
+
+  .table-wrapper {
+    overflow: visible !important;
+  }
+
+  table {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  tr {
+    break-inside: avoid;
   }
 
   .test-paper-sheet {
