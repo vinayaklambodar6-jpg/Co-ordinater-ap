@@ -49,29 +49,24 @@ export default function TestPaperGenerator({ syllabus = [] }) {
   const [customChapter, setCustomChapter] = useState('')
   const [maxMarks, setMaxMarks] = useState(20)
 
-  const subjects = useMemo(
-    () =>
-      unique([
-        ...getSubjects(className),
-        ...syllabus.filter((item) => item.className === className).map((item) => item.subject),
-      ]),
-    [className, syllabus],
-  )
+  const subjects = useMemo(() => {
+    const bankSubjects = getSubjects(className)
+    const extraSubjects = syllabus
+      .filter((item) => item.className === className)
+      .map((item) => item.subject)
+      .filter((subject) => subject && !bankSubjects.includes(subject))
+    return unique([...bankSubjects, ...extraSubjects.slice().sort()])
+  }, [className, syllabus])
 
-  const chapters = useMemo(
-    () =>
-      unique([
-        ...getChapters(className, subjectChoice === OTHER ? '' : subjectChoice),
-        ...syllabus
-          .filter(
-            (item) =>
-              item.className === className &&
-              item.subject === (subjectChoice === OTHER ? '' : subjectChoice),
-          )
-          .map((item) => item.chapter),
-      ]),
-    [className, subjectChoice, syllabus],
-  )
+  const chapters = useMemo(() => {
+    const subject = subjectChoice === OTHER ? '' : subjectChoice
+    const bankChapters = getChapters(className, subject)
+    const extraChapters = syllabus
+      .filter((item) => item.className === className && item.subject === subject)
+      .map((item) => item.chapter)
+      .filter((chapter) => chapter && !bankChapters.includes(chapter))
+    return unique([...bankChapters, ...extraChapters.slice().sort()])
+  }, [className, subjectChoice, syllabus])
 
   const isCustomSubject = subjectChoice === OTHER
   const isCustomChapter = chapterChoice === OTHER

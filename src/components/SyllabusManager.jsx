@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { QUESTION_BANK } from '../data/questionBank.js'
+import { NCERT_SYLLABUS } from '../data/ncertSyllabus.js'
 
 const bankClasses = Object.keys(QUESTION_BANK)
 
@@ -9,6 +10,58 @@ export default function SyllabusManager({ syllabus }) {
   const [form, setForm] = useState(emptyForm)
   const [busy, setBusy] = useState(false)
   const [filter, setFilter] = useState('')
+  const [importMessage, setImportMessage] = useState('')
+
+  const ncertEntries = useMemo(
+    () =>
+      Object.entries(NCERT_SYLLABUS).flatMap(([className, subjects]) =>
+        Object.entries(subjects).flatMap(([subject, chapters]) =>
+          chapters.map((chapter) => ({ className, subject, chapter })),
+        ),
+      ),
+    [],
+  )
+
+  const ncertStats = useMemo(() => {
+    const classes = Object.keys(NCERT_SYLLABUS).length
+    const subjects = new Set(
+      Object.values(NCERT_SYLLABUS).flatMap((subjectMap) => Object.keys(subjectMap)),
+    ).size
+    return { classes, subjects, chapters: ncertEntries.length }
+  }, [ncertEntries])
+
+  const existingKeys = useMemo(
+    () => new Set(syllabus.items.map((item) => `${item.className}|${item.subject}|${item.chapter}`)),
+    [syllabus.items],
+  )
+
+  const missingCount = ncertEntries.filter(
+    (entry) => !existingKeys.has(`${entry.className}|${entry.subject}|${entry.chapter}`),
+  ).length
+
+  async function handleImportNcert() {
+    const missing = ncertEntries.filter(
+      (entry) => !existingKeys.has(`${entry.className}|${entry.subject}|${entry.chapter}`),
+    )
+
+    if (!missing.length) {
+      setImportMessage('✅ Poora NCERT syllabus pehle se imported hai.')
+      return
+    }
+
+    if (!window.confirm(`${missing.length} NCERT chapters import karein?`)) return
+
+    setBusy(true)
+    setImportMessage('')
+    try {
+      await syllabus.addMany(missing)
+      setImportMessage(`✅ ${missing.length} NCERT chapters import ho gaye.`)
+    } catch (error) {
+      setImportMessage(`❌ Import nahi hua: ${error.message}`)
+    } finally {
+      setBusy(false)
+    }
+  }
 
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }))
 
@@ -58,10 +111,18 @@ export default function SyllabusManager({ syllabus }) {
   }
 
   const search = filter.trim().toLowerCase()
-  const visibleItems = syllabus.items.filter((item) => {
-    if (!search) return true
-    return `${item.className} ${item.subject} ${item.chapter}`.toLowerCase().includes(search)
-  })
+  const visibleItems = syllabus.items
+    .filter((item) => {
+      if (!search) return true
+      return `${item.className} ${item.subject} ${item.chapter}`.toLowerCase().includes(search)
+    })
+    .slice()
+    .sort(
+      (a, b) =>
+        String(a.className).localeCompare(String(b.className), undefined, { numeric: true }) ||
+        String(a.subject).localeCompare(String(b.subject)) ||
+        String(a.chapter).localeCompare(String(b.chapter)),
+    )
 
   return (
     <>
@@ -116,6 +177,27 @@ export default function SyllabusManager({ syllabus }) {
             {busy ? 'Saving…' : 'Add Chapters'}
           </button>
         </form>
+
+        <div className="ncert-import">
+          <div>
+            <b>📚 NCERT Syllabus (Class 6–10)</b>
+            <p className="muted">
+              {ncertStats.classes} classes · {ncertStats.subjects} subjects · {ncertStats.chapters} chapters
+              {missingCount > 0
+                ? ` · ${missingCount} chapters import karne baaki hain`
+                : ' · sab import ho chuka hai'}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={handleImportNcert}
+            disabled={busy || missingCount === 0}
+          >
+            {busy ? 'Importing…' : '⬇️ Import NCERT Syllabus'}
+          </button>
+        </div>
+        {importMessage && <p className="admin-message" style={{ marginTop: 12 }}>{importMessage}</p>}
       </section>
 
       <section className="card">

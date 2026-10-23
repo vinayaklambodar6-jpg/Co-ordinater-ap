@@ -9,6 +9,7 @@ import {
   query,
   serverTimestamp,
   updateDoc,
+  writeBatch,
 } from 'firebase/firestore'
 import { db } from '../firebase.js'
 
@@ -52,6 +53,17 @@ export function useFirestoreCollection(
     await addDoc(collection(db, name), { ...data, createdAt: serverTimestamp() })
   }
 
+  // Bulk insert (used by the NCERT syllabus import) in chunks of 400.
+  async function addMany(items) {
+    for (let start = 0; start < items.length; start += 400) {
+      const batch = writeBatch(db)
+      items.slice(start, start + 400).forEach((item) => {
+        batch.set(doc(collection(db, name)), { ...item, createdAt: serverTimestamp() })
+      })
+      await batch.commit()
+    }
+  }
+
   async function updateItem(id, data) {
     await updateDoc(doc(db, name, id), { ...data, updatedAt: serverTimestamp() })
   }
@@ -60,5 +72,5 @@ export function useFirestoreCollection(
     await deleteDoc(doc(db, name, id))
   }
 
-  return { items, loading, error, addItem, updateItem, removeItem }
+  return { items, loading, error, addItem, addMany, updateItem, removeItem }
 }

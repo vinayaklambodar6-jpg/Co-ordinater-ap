@@ -1012,6 +1012,23 @@ tbody tr:last-child td {
   font-size: 0.85rem;
 }
 
+.ncert-import {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+  padding: 14px 16px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 10px;
+  background: var(--card-bg-alt);
+}
+
+.ncert-import p {
+  margin-top: 2px;
+}
+
 /* Notifications */
 .message-preview {
   white-space: pre-wrap;
