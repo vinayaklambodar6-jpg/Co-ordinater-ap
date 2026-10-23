@@ -9,6 +9,7 @@ import SyllabusManager from './components/SyllabusManager.jsx'
 import LoginScreen from './components/LoginScreen.jsx'
 import AdminPanel from './components/AdminPanel.jsx'
 import NotificationPanel from './components/NotificationPanel.jsx'
+import WelcomeBanner from './components/WelcomeBanner.jsx'
 import { MySubstitutions, MyTimetable, TeacherDiary } from './components/TeacherViews.jsx'
 import { auth, db } from './firebase.js'
 import { logout } from './auth.js'
@@ -367,6 +368,8 @@ function App() {
 
         {isAdmin && currentTab === 'dashboard' && (
           <>
+            <WelcomeBanner name={profile?.name} />
+
             <div className="stats-grid">
               <Stat value={substitutions.items.length} label="Active Substitutes Today" />
               <Stat value={dailyLogs.items.length} label="Classes Logged Today" />
@@ -479,7 +482,14 @@ function App() {
         {isAdmin && currentTab === 'testGenerator' && <TestPaperGenerator syllabus={syllabus.items} />}
 
         {isTeacher && currentTab === 'myTimetable' && (
-          <MyTimetable teachers={teachers} profile={profile || {}} />
+          <>
+            <WelcomeBanner
+              compact
+              name={profile?.name}
+              subtitle="Aapka timetable, substitutions aur class diary — sab ek jagah."
+            />
+            <MyTimetable teachers={teachers} profile={profile || {}} />
+          </>
         )}
 
         {isTeacher && currentTab === 'mySubstitutions' && (
