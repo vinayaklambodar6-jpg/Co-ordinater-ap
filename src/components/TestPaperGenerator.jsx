@@ -182,7 +182,7 @@ export default function TestPaperGenerator({ syllabus = [] }) {
   return (
     <>
       <section className="card generator-card">
-        <h2 className="card-title">📝 Auto Test Paper Generator (Syllabus &amp; Chapter Based)</h2>
+        <h2 className="card-title no-print">📝 Auto Test Paper Generator (Syllabus &amp; Chapter Based)</h2>
 
         <form onSubmit={handleGenerate} className="no-print">
           <div className="form-grid">
@@ -340,6 +340,7 @@ export default function TestPaperGenerator({ syllabus = [] }) {
               <ol className="paper-questions">
                 {section.questions.map((question) => (
                   <li key={`${section.key}-${question.number}`}>
+                    <span className="question-number">{question.number}.</span>
                     <span className="question-text">{question.text}</span>
                     <span className="question-marks">[{question.marks}]</span>
                   </li>
