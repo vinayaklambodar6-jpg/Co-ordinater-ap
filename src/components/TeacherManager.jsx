@@ -34,7 +34,7 @@ const SAMPLE_TEACHERS = [
   },
 ]
 
-const emptyForm = { name: '', subject: '', freePeriods: [], timetable: {} }
+const emptyForm = { name: '', subject: '', phone: '', freePeriods: [], timetable: {} }
 
 function buildTimetable(teacher) {
   const timetable = {}
@@ -97,6 +97,7 @@ export default function TeacherManager({ teachers }) {
     setForm({
       name: teacher.name ?? '',
       subject: teacher.subject ?? '',
+      phone: teacher.phone ?? '',
       freePeriods: [...(teacher.freePeriods ?? [])].sort((a, b) => a - b),
       timetable: buildTimetable(teacher),
     })
@@ -122,6 +123,7 @@ export default function TeacherManager({ teachers }) {
       const payload = {
         name,
         subject,
+        phone: form.phone.trim(),
         freePeriods: form.freePeriods,
         timetable: form.timetable,
       }
@@ -197,6 +199,16 @@ export default function TeacherManager({ teachers }) {
               />
             </div>
 
+            <div className="form-group">
+              <label>Mobile / WhatsApp Number</label>
+              <input
+                type="tel"
+                placeholder="e.g. 9876543210"
+                value={form.phone}
+                onChange={(event) => update('phone', event.target.value)}
+              />
+            </div>
+
             <div className="form-group full-width">
               <label>Daily Timetable (class per period — blank ka matlab free period)</label>
               <div className="timetable-grid">
@@ -264,6 +276,7 @@ export default function TeacherManager({ teachers }) {
               <tr>
                 <th>Teacher</th>
                 <th>Subject</th>
+                <th>Contact</th>
                 <th>Daily Timetable</th>
                 <th>Free Periods</th>
                 <th>Actions</th>
@@ -274,6 +287,7 @@ export default function TeacherManager({ teachers }) {
                 <tr key={teacher.id}>
                   <td><b>{teacher.name}</b></td>
                   <td>{teacher.subject}</td>
+                  <td>{teacher.phone || <span className="muted">Not added</span>}</td>
                   <td>
                     <div className="timetable-view">
                       {PERIODS.filter((period) => teacher.timetable?.[period]).map((period) => (
@@ -301,7 +315,7 @@ export default function TeacherManager({ teachers }) {
               ))}
               {!teachers.loading && !teacherList.length && (
                 <tr>
-                  <td colSpan={5} style={{ textAlign: 'center' }}>
+                  <td colSpan={6} style={{ textAlign: 'center' }}>
                     Abhi koi teacher add nahi hua.{' '}
                     <button type="button" className="btn-link" onClick={seedSampleTeachers} disabled={busy}>
                       Sample teachers add karein
@@ -310,7 +324,7 @@ export default function TeacherManager({ teachers }) {
                 </tr>
               )}
               {teachers.loading && (
-                <tr><td colSpan={5} style={{ textAlign: 'center' }}>Loading from Firebase…</td></tr>
+                <tr><td colSpan={6} style={{ textAlign: 'center' }}>Loading from Firebase…</td></tr>
               )}
             </tbody>
           </table>

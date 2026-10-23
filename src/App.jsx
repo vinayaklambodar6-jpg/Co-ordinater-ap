@@ -8,11 +8,13 @@ import TestPaperGenerator from './components/TestPaperGenerator.jsx'
 import SyllabusManager from './components/SyllabusManager.jsx'
 import LoginScreen from './components/LoginScreen.jsx'
 import AdminPanel from './components/AdminPanel.jsx'
+import NotificationPanel from './components/NotificationPanel.jsx'
 import { MySubstitutions, MyTimetable, TeacherDiary } from './components/TeacherViews.jsx'
 import { auth, db } from './firebase.js'
 import { logout } from './auth.js'
 import { useFirestoreCollection } from './hooks/useFirestoreCollection.js'
 import { isTeacherFree } from './utils/teachers.js'
+import { buildSubstitutionMessage, normalizePhone, smsLink, whatsappLink } from './utils/notify.js'
 
 // First signed-in account(s) allowed to bootstrap the admin role.
 const ADMIN_EMAILS = ['vinayaklambodar6@gmail.com']
@@ -51,6 +53,7 @@ function App() {
   const [logForm, setLogForm] = useState(emptyLog)
   const [defForm, setDefForm] = useState(emptyDefaulter)
   const [saving, setSaving] = useState(false)
+  const [subAlert, setSubAlert] = useState(null)
 
   const freeTeachers = teachers.items.filter((teacher) =>
     isTeacherFree(teacher, Number(subForm.period)),
@@ -166,23 +169,39 @@ function App() {
     }
   }
 
-  function handleAssignSub(event) {
+  async function handleAssignSub(event) {
     event.preventDefault()
     if (!subForm.classSection.trim() || !subForm.absentTeacher.trim() || !subForm.substitute) {
       window.alert('Kripya sabhi details bharein!')
       return
     }
-    saveEntry(
-      substitutions.addItem,
-      {
-        period: Number(subForm.period),
-        classSection: subForm.classSection.trim(),
-        absentTeacher: subForm.absentTeacher.trim(),
-        substitute: subForm.substitute,
-      },
-      () => setSubForm((form) => ({ ...form, classSection: '', absentTeacher: '', substitute: '' })),
-      'Substitute assign ho gaya!',
-    )
+
+    const entry = {
+      period: Number(subForm.period),
+      classSection: subForm.classSection.trim(),
+      absentTeacher: subForm.absentTeacher.trim(),
+      substitute: subForm.substitute,
+    }
+
+    setSaving(true)
+    try {
+      await substitutions.addItem(entry)
+      setSubForm((form) => ({ ...form, classSection: '', absentTeacher: '', substitute: '' }))
+      setSubAlert(entry)
+      window.alert('Substitute assign ho gaya! Ab neeche WhatsApp/SMS alert bhej sakte hain.')
+    } catch (error) {
+      window.alert(`Save nahi hua: ${error.message}`)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  function alertTargets(entry) {
+    if (!entry) return []
+    return [entry.substitute, entry.absentTeacher].map((name) => {
+      const teacher = teachers.items.find((item) => item.name === name)
+      return { name, phone: teacher?.phone || '', exists: Boolean(teacher) }
+    })
   }
 
   function handleSaveLog(event) {
@@ -293,11 +312,59 @@ function App() {
 
         {isAdmin && currentTab === 'admin' && <AdminPanel users={users} teachers={teachers} />}
 
+        {isAdmin && currentTab === 'notifications' && (
+          <NotificationPanel teachers={teachers} substitutions={substitutions} />
+        )}
+
         {isAdmin && currentTab === 'teachers' && <TeacherManager teachers={teachers} />}
 
         {isAdmin && currentTab === 'syllabus' && <SyllabusManager syllabus={syllabus} />}
 
         {isAdmin && currentTab === 'substitution' && (
+          <>
+          {subAlert && (
+            <section className="card alert-ready-card">
+              <h2 className="card-title">🔔 Substitution Alert Ready</h2>
+              <p className="muted" style={{ marginBottom: 10 }}>
+                Abhi save hui substitution ke liye message tayyar hai — relevant staff ko WhatsApp
+                ya SMS bhejein.
+              </p>
+              <div className="message-preview">
+                {buildSubstitutionMessage(subAlert)}
+              </div>
+              <div className="alert-recipients">
+                {alertTargets(subAlert).map((target) => (
+                  <div className="alert-recipient" key={target.name}>
+                    <b>{target.name}</b>
+                    {normalizePhone(target.phone) ? (
+                      <>
+                        <a
+                          className="btn-link"
+                          href={whatsappLink(target.phone, buildSubstitutionMessage(subAlert))}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          WhatsApp
+                        </a>
+                        <a className="btn-link" href={smsLink(target.phone, buildSubstitutionMessage(subAlert))}>
+                          SMS
+                        </a>
+                      </>
+                    ) : (
+                      <span className="muted">Number saved nahi hai</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => setCurrentTab('notifications')}
+              >
+                Open Quick Message Panel
+              </button>
+            </section>
+          )}
           <section className="card">
             <h2 className="card-title">🔄 Assign Substitute Period</h2>
             <form onSubmit={handleAssignSub}>
@@ -322,6 +389,7 @@ function App() {
               <button type="submit" className="btn-primary" disabled={saving}>{saving ? 'Saving…' : 'Assign Substitute Now'}</button>
             </form>
           </section>
+          </>
         )}
 
         {isAdmin && currentTab === 'testGenerator' && <TestPaperGenerator syllabus={syllabus.items} />}

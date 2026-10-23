@@ -10,7 +10,7 @@ import { addDoc, collection, doc, serverTimestamp, setDoc } from 'firebase/fires
 import { db, firebaseConfig } from '../firebase.js'
 import { authErrorMessage, sendResetEmail } from '../auth.js'
 
-const emptyForm = { name: '', subject: '', email: '', password: '' }
+const emptyForm = { name: '', subject: '', phone: '', email: '', password: '' }
 
 export default function AdminPanel({ users, teachers }) {
   const [form, setForm] = useState(emptyForm)
@@ -24,6 +24,7 @@ export default function AdminPanel({ users, teachers }) {
 
     const name = form.name.trim()
     const subject = form.subject.trim()
+    const phone = form.phone.trim()
     const email = form.email.trim().toLowerCase()
     const password = form.password
 
@@ -46,6 +47,7 @@ export default function AdminPanel({ users, teachers }) {
       const teacherRef = await addDoc(collection(db, 'teachers'), {
         name,
         subject,
+        phone,
         freePeriods: [],
         timetable: {},
         createdAt: serverTimestamp(),
@@ -56,6 +58,7 @@ export default function AdminPanel({ users, teachers }) {
         email,
         role: 'teacher',
         subject,
+        phone,
         teacherId: teacherRef.id,
         createdAt: serverTimestamp(),
       })
@@ -116,6 +119,15 @@ export default function AdminPanel({ users, teachers }) {
                 placeholder="e.g. Science"
                 value={form.subject}
                 onChange={(event) => update('subject', event.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <label>Mobile / WhatsApp</label>
+              <input
+                type="tel"
+                placeholder="e.g. 9876543210"
+                value={form.phone}
+                onChange={(event) => update('phone', event.target.value)}
               />
             </div>
             <div className="form-group">

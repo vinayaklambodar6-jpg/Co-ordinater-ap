@@ -19,6 +19,7 @@ export default function Header({
     { id: 'testGenerator', label: '📝 Auto Test Paper', roles: ['admin'] },
     { id: 'dailyLog', label: '📖 Diary & Bring Message', roles: ['admin'] },
     { id: 'defaulters', label: '⚠️ Defaulters Register', roles: ['admin'] },
+    { id: 'notifications', label: '🔔 Notifications', roles: ['admin'] },
     { id: 'admin', label: '🔐 Admin Panel', roles: ['admin'] },
     { id: 'myTimetable', label: '🗓️ My Timetable', roles: ['teacher'] },
     { id: 'mySubstitutions', label: '🔄 My Substitutions', roles: ['teacher'] },
