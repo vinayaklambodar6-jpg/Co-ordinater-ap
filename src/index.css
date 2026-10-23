@@ -1029,6 +1029,49 @@ tbody tr:last-child td {
   margin-top: 2px;
 }
 
+.chapter-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 6px;
+  max-height: 250px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  background: var(--card-bg-alt);
+}
+
+.chapter-option {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 9px;
+  border-radius: 7px;
+  font-size: 0.83rem;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-main);
+  cursor: pointer;
+  margin: 0;
+}
+
+.chapter-option:hover {
+  background: var(--row-hover);
+}
+
+.chapter-option.selected {
+  background: var(--accent-bg);
+  color: var(--accent-text);
+}
+
+.chapter-option input {
+  margin: 0;
+  padding: 0;
+  accent-color: var(--primary);
+  flex-shrink: 0;
+}
+
 /* Notifications */
 .message-preview {
   white-space: pre-wrap;

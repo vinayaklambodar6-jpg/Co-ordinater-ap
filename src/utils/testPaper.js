@@ -135,34 +135,65 @@ export function generatePaper({
   className,
   subject,
   chapter,
+  chapters,
   maxMarks = 20,
   chapterPool: availableChapters = [],
 }) {
-  const cleanChapter = chapter.trim()
-  const target = Number(maxMarks) || 20
+  const selectedChapters = (chapters?.length ? chapters : [chapter])
+    .map((item) => String(item ?? '').trim())
+    .filter(Boolean)
 
-  const selectedPool = shuffle(chapterPool(className, subject, cleanChapter))
-  const otherChapters = shuffle(
-    availableChapters.filter((item) => item && item !== cleanChapter),
+  const target = Number(maxMarks) || 20
+  const primary = selectedChapters[0] ?? 'General Revision'
+
+  const chapterQuestions = new Map(
+    selectedChapters.map((name) => [name, shuffle(chapterPool(className, subject, name))]),
   )
 
-  let pool = selectedPool
-  let chaptersUsed = 1
-  let depth = 0
+  const extraChapters = shuffle(
+    availableChapters.filter((item) => item && !selectedChapters.includes(item)),
+  )
 
-  function poolMarks() {
-    return pool.reduce((sum, question) => sum + question.marks, 0)
+  let pool = selectedChapters.flatMap((name) => chapterQuestions.get(name))
+  let extraDepth = 0
+  const poolMarks = () => pool.reduce((sum, question) => sum + question.marks, 0)
+
+  // If the selected chapters cannot supply the requested marks, mix in other
+  // chapters from the same class/subject.
+  while (extraDepth < extraChapters.length && poolMarks() < target) {
+    pool = [...pool, ...shuffle(chapterPool(className, subject, extraChapters[extraDepth]))]
+    extraDepth += 1
   }
 
-  // Prefer the selected chapter alone. If it cannot supply the requested
-  // marks, mix in other chapters of the same subject/class.
-  while (depth < otherChapters.length && poolMarks() < target) {
-    pool = [...pool, ...shuffle(chapterPool(className, subject, otherChapters[depth]))]
-    depth += 1
-    chaptersUsed += 1
-  }
+  let selection = selectQuestions(pool, target)
 
-  const selection = selectQuestions(pool, target)
+  // For a multi-chapter paper, keep at least one question from every selected
+  // chapter when the marks budget allows it.
+  if (selectedChapters.length > 1 && target >= selectedChapters.length) {
+    const mandatory = []
+    const used = new Set()
+    selectedChapters.forEach((name) => {
+      const objective = chapterQuestions
+        .get(name)
+        ?.filter((question) => question.type === 'objective')
+        .find((question) => !used.has(question))
+      if (objective) {
+        mandatory.push(objective)
+        used.add(objective)
+      }
+    })
+
+    const remainingTarget = target - mandatory.reduce((sum, question) => sum + question.marks, 0)
+    const rest = pool.filter((question) => !used.has(question))
+    const restSelection = remainingTarget > 0 ? selectQuestions(rest, remainingTarget) : { selected: [], total: 0 }
+
+    if (mandatory.length && mandatory.length + restSelection.selected.length) {
+      selection = {
+        selected: [...mandatory, ...restSelection.selected],
+        total: mandatory.reduce((sum, question) => sum + question.marks, 0) + restSelection.total,
+      }
+    }
+  }
 
   const grouped = { objective: [], short: [], long: [] }
   selection.selected.forEach((question) => {
@@ -175,20 +206,30 @@ export function generatePaper({
   }))
 
   const totalMarks = selection.total
-  const hasAnswers = selection.selected.some((question) => question.answer)
+  const appearedChapters = [
+    ...new Set(selection.selected.map((question) => question.chapter)),
+  ].filter(Boolean)
+
+  const chapterLabel =
+    selectedChapters.length > 1
+      ? `${selectedChapters.slice(0, 3).join(', ')}${
+          selectedChapters.length > 3 ? ` + ${selectedChapters.length - 3} more` : ''
+        }`
+      : primary
 
   return {
     className,
     subject,
-    chapter: cleanChapter,
-    chaptersUsed,
+    chapter: chapterLabel,
+    chapters: selectedChapters,
+    chaptersUsed: appearedChapters.length,
     sections,
     totalMarks,
     requestedMarks: target,
     shortfall: totalMarks < target,
     duration: Math.max(20, Math.round((totalMarks / 20) * 35)),
-    fromBank: Boolean(QUESTION_BANK[className]?.[subject]?.[cleanChapter]),
-    hasAnswers,
+    fromBank: selectedChapters.every((name) => Boolean(QUESTION_BANK[className]?.[subject]?.[name])),
+    hasAnswers: selection.selected.some((question) => question.answer),
     date: new Date().toLocaleDateString('en-GB'),
   }
 }

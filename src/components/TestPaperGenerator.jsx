@@ -10,6 +10,24 @@ import {
 const OTHER = '__other__'
 const MARKS_OPTIONS = getMarksOptions()
 
+function subjectOptions(className, syllabus) {
+  const bankSubjects = getSubjects(className)
+  const extraSubjects = syllabus
+    .filter((item) => item.className === className)
+    .map((item) => item.subject)
+    .filter((subject) => subject && !bankSubjects.includes(subject))
+  return unique([...bankSubjects, ...extraSubjects.slice().sort()])
+}
+
+function chapterOptions(className, subject, syllabus) {
+  const bankChapters = getChapters(className, subject)
+  const extraChapters = syllabus
+    .filter((item) => item.className === className && item.subject === subject)
+    .map((item) => item.chapter)
+    .filter((chapter) => chapter && !bankChapters.includes(chapter))
+  return unique([...bankChapters, ...extraChapters.slice().sort()])
+}
+
 function classSort(a, b) {
   const numberA = Number(a.replace(/\D/g, ''))
   const numberB = Number(b.replace(/\D/g, ''))
@@ -43,33 +61,26 @@ export default function TestPaperGenerator({ syllabus = [] }) {
   const [className, setClassName] = useState(classes[0] ?? 'Class 10')
   const [subjectChoice, setSubjectChoice] = useState(getSubjects(classes[0])[0] ?? '')
   const [customSubject, setCustomSubject] = useState('')
-  const [chapterChoice, setChapterChoice] = useState(
-    getChapters(classes[0], getSubjects(classes[0])[0])[0] ?? '',
+  const initialChapters = chapterOptions(
+    classes[0] ?? 'Class 10',
+    getSubjects(classes[0])[0] ?? '',
+    syllabus,
   )
+  const [selectedChapters, setSelectedChapters] = useState(initialChapters.slice(0, 1))
   const [customChapter, setCustomChapter] = useState('')
   const [maxMarks, setMaxMarks] = useState(20)
 
-  const subjects = useMemo(() => {
-    const bankSubjects = getSubjects(className)
-    const extraSubjects = syllabus
-      .filter((item) => item.className === className)
-      .map((item) => item.subject)
-      .filter((subject) => subject && !bankSubjects.includes(subject))
-    return unique([...bankSubjects, ...extraSubjects.slice().sort()])
-  }, [className, syllabus])
+  const subjects = useMemo(
+    () => subjectOptions(className, syllabus),
+    [className, syllabus],
+  )
 
-  const chapters = useMemo(() => {
-    const subject = subjectChoice === OTHER ? '' : subjectChoice
-    const bankChapters = getChapters(className, subject)
-    const extraChapters = syllabus
-      .filter((item) => item.className === className && item.subject === subject)
-      .map((item) => item.chapter)
-      .filter((chapter) => chapter && !bankChapters.includes(chapter))
-    return unique([...bankChapters, ...extraChapters.slice().sort()])
-  }, [className, subjectChoice, syllabus])
+  const chapters = useMemo(
+    () => chapterOptions(className, subjectChoice === OTHER ? '' : subjectChoice, syllabus),
+    [className, subjectChoice, syllabus],
+  )
 
   const isCustomSubject = subjectChoice === OTHER
-  const isCustomChapter = chapterChoice === OTHER
 
   const initialPaper = useMemo(
     () =>
@@ -93,30 +104,20 @@ export default function TestPaperGenerator({ syllabus = [] }) {
     ])[0] ?? ''
     setSubjectChoice(nextSubject)
     setCustomSubject('')
-    const nextChapters = unique([
-      ...getChapters(value, nextSubject),
-      ...syllabus
-        .filter((item) => item.className === value && item.subject === nextSubject)
-        .map((item) => item.chapter),
-    ])
-    setChapterChoice(nextChapters[0] ?? '')
+    const nextChapters = chapterOptions(value, nextSubject, syllabus)
+    setSelectedChapters(nextChapters.slice(0, 1))
     setCustomChapter('')
   }
 
   function handleSubjectChange(value) {
     setSubjectChoice(value)
     setCustomSubject('')
-    const nextChapters = unique([
-      ...getChapters(className, value === OTHER ? '' : value),
-      ...syllabus
-        .filter(
-          (item) =>
-            item.className === className &&
-            item.subject === (value === OTHER ? '' : value),
-        )
-        .map((item) => item.chapter),
-    ])
-    setChapterChoice(nextChapters[0] ?? '')
+    const nextChapters = chapterOptions(
+      className,
+      value === OTHER ? '' : value,
+      syllabus,
+    )
+    setSelectedChapters(nextChapters.slice(0, 1))
     setCustomChapter('')
   }
 
@@ -124,15 +125,26 @@ export default function TestPaperGenerator({ syllabus = [] }) {
     event.preventDefault()
 
     const subject = (isCustomSubject ? customSubject : subjectChoice).trim()
-    const chapter = (isCustomChapter ? customChapter : chapterChoice).trim()
+    const chosenChapters = unique([
+      ...selectedChapters,
+      customChapter.trim(),
+    ])
 
-    if (!subject || !chapter) {
-      window.alert('Subject aur chapter bharna zaroori hai!')
+    if (!subject || !chosenChapters.length) {
+      window.alert('Subject aur kam se kam ek chapter select karein!')
       return
     }
 
-    const pool = unique([...chapters, chapter])
-    setPaper(generatePaper({ className, subject, chapter, maxMarks, chapterPool: pool }))
+    const pool = unique([...chapters, ...chosenChapters])
+    setPaper(
+      generatePaper({
+        className,
+        subject,
+        chapters: chosenChapters,
+        maxMarks,
+        chapterPool: pool,
+      }),
+    )
   }
 
   function handleRegenerate() {
@@ -142,13 +154,13 @@ export default function TestPaperGenerator({ syllabus = [] }) {
       ...syllabus
         .filter((item) => item.className === paper.className && item.subject === paper.subject)
         .map((item) => item.chapter),
-      paper.chapter,
+      ...(paper.chapters ?? [paper.chapter]),
     ])
     setPaper(
       generatePaper({
         className: paper.className,
         subject: paper.subject,
-        chapter: paper.chapter,
+        chapters: paper.chapters,
         maxMarks,
         chapterPool: pool,
       }),
@@ -194,21 +206,6 @@ export default function TestPaperGenerator({ syllabus = [] }) {
             </div>
 
             <div className="form-group">
-              <label>Chapter</label>
-              <select
-                value={chapterChoice}
-                onChange={(event) => setChapterChoice(event.target.value)}
-                disabled={isCustomSubject}
-              >
-                {chapters.map((item) => (
-                  <option key={item} value={item}>{item}</option>
-                ))}
-                {!chapters.length && <option value="">No chapter in syllabus</option>}
-                <option value={OTHER}>Other chapter…</option>
-              </select>
-            </div>
-
-            <div className="form-group">
               <label>Maximum Marks (MM)</label>
               <select
                 value={maxMarks}
@@ -218,6 +215,54 @@ export default function TestPaperGenerator({ syllabus = [] }) {
                   <option key={marks} value={marks}>{marks} Marks</option>
                 ))}
               </select>
+            </div>
+
+            <div className="form-group full-width">
+              <label>
+                Chapters — multiple select ({selectedChapters.length + (customChapter.trim() ? 1 : 0)} selected)
+              </label>
+              <div className="chapter-picker" role="group" aria-label="Select chapters">
+                {chapters.map((chapter) => (
+                  <label
+                    key={chapter}
+                    className={`chapter-option${selectedChapters.includes(chapter) ? ' selected' : ''}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedChapters.includes(chapter)}
+                      onChange={() =>
+                        setSelectedChapters((current) =>
+                          current.includes(chapter)
+                            ? current.filter((item) => item !== chapter)
+                            : [...current, chapter],
+                        )
+                      }
+                    />
+                    <span>{chapter}</span>
+                  </label>
+                ))}
+                {!chapters.length && (
+                  <p className="muted">Is subject ke liye koi chapter nahi mila.</p>
+                )}
+              </div>
+              <div className="button-row" style={{ marginTop: 10 }}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => setSelectedChapters(chapters)}
+                  disabled={!chapters.length}
+                >
+                  Select all ({chapters.length})
+                </button>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => setSelectedChapters([])}
+                  disabled={!selectedChapters.length}
+                >
+                  Clear
+                </button>
+              </div>
             </div>
 
             {isCustomSubject && (
@@ -232,17 +277,14 @@ export default function TestPaperGenerator({ syllabus = [] }) {
               </div>
             )}
 
-            {isCustomChapter && (
-              <div className="form-group">
-                <label>Chapter Name</label>
-                <input
-                  required
-                  placeholder="e.g. Chapter 6 Triangles"
-                  value={customChapter}
-                  onChange={(event) => setCustomChapter(event.target.value)}
-                />
-              </div>
-            )}
+            <div className="form-group full-width">
+              <label>Other chapter (optional)</label>
+              <input
+                placeholder="Syllabus mein na ho to chapter name likhein"
+                value={customChapter}
+                onChange={(event) => setCustomChapter(event.target.value)}
+              />
+            </div>
           </div>
 
           <div className="button-row">
@@ -279,8 +321,7 @@ export default function TestPaperGenerator({ syllabus = [] }) {
             <span><b>Class:</b> {paper.className}</span>
             <span><b>Subject:</b> {paper.subject}</span>
             <span>
-              <b>Chapter:</b> {paper.chapter}
-              {paper.chaptersUsed > 1 ? ` + ${paper.chaptersUsed - 1} more` : ''}
+              <b>{(paper.chapters?.length ?? 1) > 1 ? 'Chapters' : 'Chapter'}:</b> {paper.chapter}
             </span>
             <span><b>Date:</b> {paper.date}</span>
           </div>
@@ -329,7 +370,9 @@ export default function TestPaperGenerator({ syllabus = [] }) {
         <div className="answer-key-meta">
           <span><b>Class:</b> {paper.className}</span>
           <span><b>Subject:</b> {paper.subject}</span>
-          <span><b>Chapter:</b> {paper.chapter}</span>
+          <span>
+            <b>{(paper.chapters?.length ?? 1) > 1 ? 'Chapters' : 'Chapter'}:</b> {paper.chapter}
+          </span>
           <span><b>Total Marks:</b> {paper.totalMarks}</span>
         </div>
 
