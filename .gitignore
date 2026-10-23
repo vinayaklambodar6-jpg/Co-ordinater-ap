@@ -25,3 +25,6 @@ dist-ssr
 
 # Playwright CLI artifacts
 .playwright-cli/
+
+# Firebase CLI cache
+.firebase/
