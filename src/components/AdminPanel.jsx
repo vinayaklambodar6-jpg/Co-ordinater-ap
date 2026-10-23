@@ -12,7 +12,7 @@ import { authErrorMessage, sendResetEmail } from '../auth.js'
 
 const emptyForm = { name: '', subject: '', phone: '', email: '', password: '' }
 
-export default function AdminPanel({ users, teachers }) {
+export default function AdminPanel({ users, teachers, accessLogs }) {
   const [form, setForm] = useState(emptyForm)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
@@ -71,6 +71,51 @@ export default function AdminPanel({ users, teachers }) {
       deleteApp(secondaryApp).catch(() => {})
       setBusy(false)
     }
+  }
+
+  const pendingUsers = users.items.filter(
+    (item) => item.role === 'pending' || item.status === 'pending',
+  )
+
+  async function approve(item, role) {
+    setBusy(true)
+    try {
+      await users.updateItem(item.id, {
+        role,
+        status: 'active',
+        approvedAt: serverTimestamp(),
+      })
+      setMessage(`✅ ${item.name || item.email} ko ${role === 'admin' ? 'Coordinator' : 'Teacher'} access de diya.`)
+    } catch (error) {
+      window.alert(`Approve nahi hua: ${error.message}`)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function reject(item) {
+    if (!window.confirm(`${item.name || item.email} ki request reject karni hai?`)) return
+    setBusy(true)
+    try {
+      await users.removeItem(item.id)
+      setMessage(`Request reject kar di. (Auth account console se delete kar sakte hain.)`)
+    } catch (error) {
+      window.alert(`Reject nahi hua: ${error.message}`)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function formatTime(value) {
+    if (!value) return '-'
+    const date = typeof value.toDate === 'function' ? value.toDate() : new Date(value)
+    if (Number.isNaN(date.getTime())) return '-'
+    return date.toLocaleString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
   }
 
   async function handleReset(item) {
@@ -164,6 +209,69 @@ export default function AdminPanel({ users, teachers }) {
       </section>
 
       <section className="card">
+        <h2 className="card-title">⏳ Pending Approvals ({pendingUsers.length})</h2>
+        {!pendingUsers.length && (
+          <p className="muted">Koi pending registration request nahi hai.</p>
+        )}
+        {!!pendingUsers.length && (
+          <div className="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Contact</th>
+                  <th>Requested Role</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pendingUsers.map((item) => (
+                  <tr key={item.id}>
+                    <td>
+                      <b>{item.name || '-'}</b>
+                      <div className="muted">{item.email}</div>
+                    </td>
+                    <td>{item.phone || '-'}</td>
+                    <td>
+                      {item.requestedRole === 'admin' ? 'Coordinator (Admin)' : 'Teacher'}
+                    </td>
+                    <td>
+                      <div className="row-actions">
+                        <button
+                          type="button"
+                          className="btn-link"
+                          onClick={() => approve(item, 'teacher')}
+                          disabled={busy}
+                        >
+                          Approve Teacher
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-link"
+                          onClick={() => approve(item, 'admin')}
+                          disabled={busy}
+                        >
+                          Approve Coordinator
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-link danger"
+                          onClick={() => reject(item)}
+                          disabled={busy}
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section className="card">
         <h2 className="card-title">👥 Portal Users ({users.items.length})</h2>
         <div className="table-wrapper">
           <table>
@@ -211,6 +319,49 @@ export default function AdminPanel({ users, teachers }) {
               )}
               {users.loading && (
                 <tr><td colSpan={5} style={{ textAlign: 'center' }}>Loading from Firebase…</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="card">
+        <h2 className="card-title">📋 Access Log ({accessLogs.items.length})</h2>
+        <p className="muted" style={{ marginBottom: 10 }}>
+          Kaun login/register hua, kab aur kis role se — latest entries pehle.
+        </p>
+        <div className="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Role</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {accessLogs.items.slice(0, 60).map((log) => (
+                <tr key={log.id}>
+                  <td>{formatTime(log.createdAt)}</td>
+                  <td><b>{log.name || '-'}</b></td>
+                  <td>{log.email || '-'}</td>
+                  <td>{log.phone || '-'}</td>
+                  <td>
+                    <span className={`role-tag role-${log.role === 'admin' ? 'admin' : 'teacher'}`}>
+                      {log.role || '-'}
+                    </span>
+                  </td>
+                  <td>{log.action || 'login'}</td>
+                </tr>
+              ))}
+              {!accessLogs.loading && !accessLogs.items.length && (
+                <tr><td colSpan={6} style={{ textAlign: 'center' }}>Abhi koi access log nahi hai.</td></tr>
+              )}
+              {accessLogs.loading && (
+                <tr><td colSpan={6} style={{ textAlign: 'center' }}>Loading…</td></tr>
               )}
             </tbody>
           </table>

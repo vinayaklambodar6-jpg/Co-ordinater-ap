@@ -1,6 +1,8 @@
 import {
   GoogleAuthProvider,
+  createUserWithEmailAndPassword,
   sendPasswordResetEmail,
+  updateProfile,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
@@ -15,6 +17,16 @@ export function signInWithGoogle() {
 
 export function signInWithEmail(email, password) {
   return signInWithEmailAndPassword(auth, email, password)
+}
+
+// Creates the auth account and stores the requested role. Portal access stays
+// blocked until an admin approves the request (role becomes teacher/admin).
+export async function registerUser({ name, email, password }) {
+  const credential = await createUserWithEmailAndPassword(auth, email, password)
+  if (name) {
+    await updateProfile(credential.user, { displayName: name })
+  }
+  return credential
 }
 
 export function logout() {

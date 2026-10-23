@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { onAuthStateChanged } from 'firebase/auth'
-import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore'
+import { addDoc, collection, doc, getDoc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore'
 import Header from './components/Header.jsx'
 import Footer from './components/Footer.jsx'
 import TeacherManager from './components/TeacherManager.jsx'
@@ -48,6 +48,7 @@ function App() {
   const teachers = useFirestoreCollection('teachers', { orderField: 'name', direction: 'asc', enabled: portalAccess })
   const syllabus = useFirestoreCollection('syllabus', { enabled: isAdmin })
   const users = useFirestoreCollection('users', { enabled: isAdmin })
+  const accessLogs = useFirestoreCollection('accessLogs', { enabled: isAdmin })
 
   const [subForm, setSubForm] = useState(emptySub)
   const [logForm, setLogForm] = useState(emptyLog)
@@ -64,10 +65,16 @@ function App() {
 
   useEffect(() => {
     let cancelled = false
+    let unsubProfile = null
 
     const unsubscribe = onAuthStateChanged(auth, async (nextUser) => {
       setUser(nextUser)
       setAccessError('')
+
+      if (unsubProfile) {
+        unsubProfile()
+        unsubProfile = null
+      }
 
       if (!nextUser) {
         setProfile(null)
@@ -76,43 +83,70 @@ function App() {
         return
       }
 
-      try {
-        const userRef = doc(db, 'users', nextUser.uid)
-        let snapshot = await getDoc(userRef)
+      const accountEmail = (nextUser.email || '').toLowerCase()
+      const userRef = doc(db, 'users', nextUser.uid)
 
-        // Bootstrap the very first admin account from the allowlist.
-        if (!snapshot.exists() && ADMIN_EMAILS.includes((nextUser.email || '').toLowerCase())) {
-          await setDoc(userRef, {
-            name: nextUser.displayName || nextUser.email,
-            email: nextUser.email,
-            role: 'admin',
-            createdAt: serverTimestamp(),
-          })
-          snapshot = await getDoc(userRef)
+      try {
+        const snapshot = await getDoc(userRef)
+        if (cancelled) return
+
+        // First-time login: bootstrap admins, and register everyone else as a
+        // pending request so the admin can track and approve access.
+        if (!snapshot.exists()) {
+          const isBootstrapAdmin = ADMIN_EMAILS.includes(accountEmail)
+          await setDoc(
+            userRef,
+            {
+              name: nextUser.displayName || nextUser.email,
+              email: nextUser.email,
+              phone: nextUser.phoneNumber || '',
+              role: isBootstrapAdmin ? 'admin' : 'pending',
+              status: isBootstrapAdmin ? 'active' : 'pending',
+              requestedRole: isBootstrapAdmin ? 'admin' : 'teacher',
+              createdAt: serverTimestamp(),
+            },
+            { merge: true },
+          )
         }
 
         if (cancelled) return
 
-        if (snapshot.exists()) {
-          const data = snapshot.data()
-          setProfile({ id: snapshot.id, ...data })
-          setRole(data.role === 'admin' ? 'admin' : 'teacher')
-        } else {
-          setProfile(null)
-          setRole(null)
-        }
+        unsubProfile = onSnapshot(
+          userRef,
+          (docSnapshot) => {
+            if (!docSnapshot.exists()) {
+              setProfile(null)
+              setRole(null)
+              setAuthReady(true)
+              return
+            }
+
+            const data = docSnapshot.data()
+            setProfile({ id: docSnapshot.id, ...data })
+            setRole(
+              data.role === 'admin' ? 'admin' : data.role === 'teacher' ? 'teacher' : null,
+            )
+            setAuthReady(true)
+          },
+          (snapshotError) => {
+            setAccessError(snapshotError.message)
+            setProfile(null)
+            setRole(null)
+            setAuthReady(true)
+          },
+        )
       } catch (error) {
         if (cancelled) return
         setAccessError(error.message)
         setProfile(null)
         setRole(null)
-      } finally {
-        if (!cancelled) setAuthReady(true)
+        setAuthReady(true)
       }
     })
 
     return () => {
       cancelled = true
+      if (unsubProfile) unsubProfile()
       unsubscribe()
     }
   }, [])
@@ -127,6 +161,30 @@ function App() {
   }, [theme])
 
   const toggleTheme = () => setTheme((current) => (current === 'dark' ? 'light' : 'dark'))
+
+  // Record a login event once per browser session for the admin audit trail.
+  useEffect(() => {
+    if (!user || !portalAccess) return
+
+    const key = `access-log:${user.uid}`
+    try {
+      if (window.sessionStorage.getItem(key)) return
+      window.sessionStorage.setItem(key, '1')
+    } catch {
+      // Session storage can be unavailable; logging still continues.
+    }
+
+    addDoc(collection(db, 'accessLogs'), {
+      uid: user.uid,
+      name: profile?.name || user.displayName || '',
+      email: user.email || '',
+      phone: profile?.phone || '',
+      role,
+      action: 'login',
+      userAgent: navigator.userAgent.slice(0, 180),
+      createdAt: serverTimestamp(),
+    }).catch(() => {})
+  }, [user, portalAccess, profile, role])
 
   useEffect(() => {
     if (role === 'teacher' && !['myTimetable', 'mySubstitutions', 'teacherDiary'].includes(currentTab)) {
@@ -154,7 +212,7 @@ function App() {
 
   const storageError =
     substitutions.error || dailyLogs.error || defaulters.error || teachers.error || syllabus.error ||
-    users.error
+    users.error || accessLogs.error
 
   async function saveEntry(addItem, data, resetForm, successMessage) {
     setSaving(true)
@@ -261,11 +319,35 @@ function App() {
 
         {authReady && user && !portalAccess && (
           <section className="card login-card">
-            <h2 className="card-title">🚫 Access Not Assigned</h2>
-            <p className="muted" style={{ marginBottom: 14 }}>
-              Aapka account portal ke liye authorized nahi hai. Admin se apna login credentials
-              lein ya apne account ko portal se link karwayein.
-            </p>
+            <h2 className="card-title">
+              {profile?.role === 'pending' || profile?.status === 'pending'
+                ? '⏳ Approval Pending'
+                : '🚫 Access Not Assigned'}
+            </h2>
+
+            {profile?.role === 'pending' || profile?.status === 'pending' ? (
+              <>
+                <p className="muted" style={{ marginBottom: 14 }}>
+                  Aapka registration receive ho gaya hai. Admin approval ke baad portal
+                  automatically khul jayega.
+                </p>
+                <div className="approval-details">
+                  <span><b>Name:</b> {profile?.name || '-'}</span>
+                  <span><b>Email:</b> {profile?.email || user.email}</span>
+                  <span><b>Contact:</b> {profile?.phone || '-'}</span>
+                  <span>
+                    <b>Requested role:</b>{' '}
+                    {profile?.requestedRole === 'admin' ? 'Coordinator (Admin)' : 'Teacher'}
+                  </span>
+                  <span><b>Status:</b> pending</span>
+                </div>
+              </>
+            ) : (
+              <p className="muted" style={{ marginBottom: 14 }}>
+                Aapka account portal ke liye authorized nahi hai. Admin se sampark karein.
+              </p>
+            )}
+
             {accessError && <p className="login-error">{accessError}</p>}
             <button type="button" className="btn-secondary" onClick={handleLogout}>
               Logout
@@ -310,7 +392,9 @@ function App() {
           </>
         )}
 
-        {isAdmin && currentTab === 'admin' && <AdminPanel users={users} teachers={teachers} />}
+        {isAdmin && currentTab === 'admin' && (
+          <AdminPanel users={users} teachers={teachers} accessLogs={accessLogs} />
+        )}
 
         {isAdmin && currentTab === 'notifications' && (
           <NotificationPanel teachers={teachers} substitutions={substitutions} />
