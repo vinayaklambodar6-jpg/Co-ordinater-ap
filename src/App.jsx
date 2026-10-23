@@ -10,6 +10,8 @@ import LoginScreen from './components/LoginScreen.jsx'
 import AdminPanel from './components/AdminPanel.jsx'
 import NotificationPanel from './components/NotificationPanel.jsx'
 import WelcomeBanner from './components/WelcomeBanner.jsx'
+import TaskManager from './components/TaskManager.jsx'
+import TeacherTasks from './components/TeacherTasks.jsx'
 import { MySubstitutions, MyTimetable, TeacherDiary } from './components/TeacherViews.jsx'
 import { auth, db } from './firebase.js'
 import { logout } from './auth.js'
@@ -42,14 +44,27 @@ function App() {
   const isAdmin = role === 'admin'
   const isTeacher = role === 'teacher'
   const portalAccess = isAdmin || isTeacher
+  const actor = profile ? { uid: profile.id, name: profile.name, role: profile.role } : null
 
-  const substitutions = useFirestoreCollection('substitutions', { enabled: portalAccess })
-  const dailyLogs = useFirestoreCollection('dailyLogs', { enabled: portalAccess })
-  const defaulters = useFirestoreCollection('defaulters', { enabled: isAdmin })
-  const teachers = useFirestoreCollection('teachers', { orderField: 'name', direction: 'asc', enabled: portalAccess })
-  const syllabus = useFirestoreCollection('syllabus', { enabled: isAdmin })
-  const users = useFirestoreCollection('users', { enabled: isAdmin })
+  const substitutions = useFirestoreCollection('substitutions', { enabled: portalAccess, actor })
+  const dailyLogs = useFirestoreCollection('dailyLogs', { enabled: portalAccess, actor })
+  const defaulters = useFirestoreCollection('defaulters', { enabled: isAdmin, actor })
+  const teachers = useFirestoreCollection('teachers', {
+    orderField: 'name',
+    direction: 'asc',
+    enabled: portalAccess,
+    actor,
+  })
+  const syllabus = useFirestoreCollection('syllabus', { enabled: isAdmin, actor })
+  const users = useFirestoreCollection('users', { enabled: isAdmin, actor })
   const accessLogs = useFirestoreCollection('accessLogs', { enabled: isAdmin })
+  const activityLogs = useFirestoreCollection('activityLogs', { enabled: isAdmin })
+  const tasks = useFirestoreCollection('tasks', { enabled: isAdmin, actor })
+  const myTasks = useFirestoreCollection('tasks', {
+    enabled: isTeacher,
+    filter: { field: 'assignedToUid', value: user?.uid || '' },
+    actor,
+  })
 
   const [subForm, setSubForm] = useState(emptySub)
   const [logForm, setLogForm] = useState(emptyLog)
@@ -188,10 +203,16 @@ function App() {
   }, [user, portalAccess, profile, role])
 
   useEffect(() => {
-    if (role === 'teacher' && !['myTimetable', 'mySubstitutions', 'teacherDiary'].includes(currentTab)) {
+    if (
+      role === 'teacher' &&
+      !['myTimetable', 'myTasks', 'mySubstitutions', 'teacherDiary'].includes(currentTab)
+    ) {
       setCurrentTab('myTimetable')
     }
-    if (role === 'admin' && ['myTimetable', 'mySubstitutions', 'teacherDiary'].includes(currentTab)) {
+    if (
+      role === 'admin' &&
+      ['myTimetable', 'myTasks', 'mySubstitutions', 'teacherDiary'].includes(currentTab)
+    ) {
       setCurrentTab('dashboard')
     }
   }, [role, currentTab])
@@ -213,7 +234,7 @@ function App() {
 
   const storageError =
     substitutions.error || dailyLogs.error || defaulters.error || teachers.error || syllabus.error ||
-    users.error || accessLogs.error
+    users.error || accessLogs.error || activityLogs.error || tasks.error || myTasks.error
 
   async function saveEntry(addItem, data, resetForm, successMessage) {
     setSaving(true)
@@ -396,7 +417,20 @@ function App() {
         )}
 
         {isAdmin && currentTab === 'admin' && (
-          <AdminPanel users={users} teachers={teachers} accessLogs={accessLogs} />
+          <AdminPanel
+            users={users}
+            teachers={teachers}
+            accessLogs={accessLogs}
+            activityLogs={activityLogs}
+          />
+        )}
+
+        {isAdmin && currentTab === 'tasks' && (
+          <TaskManager tasks={tasks} users={users} currentUser={profile} />
+        )}
+
+        {isTeacher && currentTab === 'myTasks' && (
+          <TeacherTasks tasks={myTasks} profile={profile || {}} />
         )}
 
         {isAdmin && currentTab === 'notifications' && (

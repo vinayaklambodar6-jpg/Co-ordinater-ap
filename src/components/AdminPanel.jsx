@@ -12,7 +12,7 @@ import { authErrorMessage, sendResetEmail } from '../auth.js'
 
 const emptyForm = { name: '', subject: '', phone: '', email: '', password: '' }
 
-export default function AdminPanel({ users, teachers, accessLogs }) {
+export default function AdminPanel({ users, teachers, accessLogs, activityLogs }) {
   const [form, setForm] = useState(emptyForm)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
@@ -319,6 +319,50 @@ export default function AdminPanel({ users, teachers, accessLogs }) {
               )}
               {users.loading && (
                 <tr><td colSpan={5} style={{ textAlign: 'center' }}>Loading from Firebase…</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="card">
+        <h2 className="card-title">🧾 Activity Log ({activityLogs.items.length})</h2>
+        <p className="muted" style={{ marginBottom: 10 }}>
+          Kis user ne kab kaunsa update kiya — tasks, substitutions, diary, teachers, syllabus sab
+          ka record.
+        </p>
+        <div className="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>User</th>
+                <th>Role</th>
+                <th>Action</th>
+                <th>Module</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              {activityLogs.items.slice(0, 80).map((log) => (
+                <tr key={log.id}>
+                  <td>{formatTime(log.createdAt)}</td>
+                  <td><b>{log.actorName || '-'}</b></td>
+                  <td>
+                    <span className={`role-tag role-${log.actorRole === 'admin' ? 'admin' : 'teacher'}`}>
+                      {log.actorRole || '-'}
+                    </span>
+                  </td>
+                  <td>{log.action || '-'}</td>
+                  <td>{log.collection || '-'}</td>
+                  <td>{log.summary || '-'}</td>
+                </tr>
+              ))}
+              {!activityLogs.loading && !activityLogs.items.length && (
+                <tr><td colSpan={6} style={{ textAlign: 'center' }}>Abhi koi activity log nahi hai.</td></tr>
+              )}
+              {activityLogs.loading && (
+                <tr><td colSpan={6} style={{ textAlign: 'center' }}>Loading…</td></tr>
               )}
             </tbody>
           </table>

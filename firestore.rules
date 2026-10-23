@@ -57,6 +57,28 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Tasks: admins assign; teachers see only their own task and may update
+    // just the status / work-note fields.
+    match /tasks/{taskId} {
+      allow read: if isAdmin() || (
+        isTeacher() && resource.data.assignedToUid == request.auth.uid
+      );
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (
+        isTeacher() &&
+        resource.data.assignedToUid == request.auth.uid &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['status', 'teacherNote', 'updatedAt'])
+      );
+    }
+
+    // Activity audit trail: append-only, readable by admins.
+    match /activityLogs/{logId} {
+      allow read: if isAdmin();
+      allow create: if signedIn() && request.resource.data.actorUid == request.auth.uid;
+      allow update, delete: if false;
+    }
+
     // Teachers can read portal data but only admins can change it.
     match /teachers/{docId} {
       allow read: if isAdmin() || isTeacher();

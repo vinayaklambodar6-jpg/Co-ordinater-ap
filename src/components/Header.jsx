@@ -15,6 +15,7 @@ export default function Header({
     { id: 'dashboard', label: '📊 Dashboard', roles: ['admin'] },
     { id: 'teachers', label: '👩‍🏫 Teachers & Timetable', roles: ['admin'] },
     { id: 'syllabus', label: '📚 Subjects & Chapters', roles: ['admin'] },
+    { id: 'tasks', label: '🗂️ Task Assigner', roles: ['admin'] },
     { id: 'substitution', label: '🔄 Substitution Manager', roles: ['admin'] },
     { id: 'testGenerator', label: '📝 Auto Test Paper', roles: ['admin'] },
     { id: 'dailyLog', label: '📖 Diary & Bring Message', roles: ['admin'] },
@@ -22,6 +23,7 @@ export default function Header({
     { id: 'notifications', label: '🔔 Notifications', roles: ['admin'] },
     { id: 'admin', label: '🔐 Admin Panel', roles: ['admin'] },
     { id: 'myTimetable', label: '🗓️ My Timetable', roles: ['teacher'] },
+    { id: 'myTasks', label: '🗂️ My Tasks', roles: ['teacher'] },
     { id: 'mySubstitutions', label: '🔄 My Substitutions', roles: ['teacher'] },
     { id: 'teacherDiary', label: '📖 Class Diary', roles: ['teacher'] },
   ]
